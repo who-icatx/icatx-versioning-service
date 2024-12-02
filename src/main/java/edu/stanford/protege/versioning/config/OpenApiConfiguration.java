@@ -1,4 +1,4 @@
-package edu.stanford.protege.gateway.config;
+package edu.stanford.protege.versioning.config;
 
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;

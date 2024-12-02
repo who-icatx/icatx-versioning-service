@@ -1,4 +1,4 @@
-package edu.stanford.protege.gateway.config;
+package edu.stanford.protege.versioning.config;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.SerializerProvider;

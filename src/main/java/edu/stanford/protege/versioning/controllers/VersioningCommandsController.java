@@ -1,4 +1,4 @@
-package edu.stanford.protege.gateway.controllers;
+package edu.stanford.protege.versioning.controllers;
 
 
 import org.springframework.http.ResponseEntity;

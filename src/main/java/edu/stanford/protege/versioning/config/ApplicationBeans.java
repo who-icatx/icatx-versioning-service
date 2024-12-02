@@ -1,4 +1,4 @@
-package edu.stanford.protege.gateway.config;
+package edu.stanford.protege.versioning.config;
 
 
 import com.fasterxml.jackson.databind.*;
@@ -37,5 +37,7 @@ public class ApplicationBeans implements WebMvcConfigurer {
 
         return objectMapper;
     }
+
+
 
 }

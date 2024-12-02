@@ -1,4 +1,4 @@
-package edu.stanford.protege.gateway;
+package edu.stanford.protege.versioning;
 
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.security.core.GrantedAuthority;
@@ -8,7 +8,6 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtGra
 
 import java.util.Collection;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class KeycloakRoleConverter implements Converter<Jwt, Collection<GrantedAuthority>> {
 

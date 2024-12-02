@@ -1,4 +1,4 @@
-package edu.stanford.protege.gateway;
+package edu.stanford.protege.versioning;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;

@@ -1,4 +1,4 @@
-package edu.stanford.protege.gateway;
+package edu.stanford.protege.versioning;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Map;

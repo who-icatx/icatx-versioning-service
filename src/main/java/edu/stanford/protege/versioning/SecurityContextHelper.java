@@ -1,4 +1,4 @@
-package edu.stanford.protege.gateway;
+package edu.stanford.protege.versioning;
 
 import edu.stanford.protege.webprotege.common.UserId;
 import edu.stanford.protege.webprotege.ipc.ExecutionContext;

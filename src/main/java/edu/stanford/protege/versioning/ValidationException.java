@@ -1,4 +1,4 @@
-package edu.stanford.protege.gateway;
+package edu.stanford.protege.versioning;
 
 public class ValidationException extends RuntimeException {
     public ValidationException(String message) {
