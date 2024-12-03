@@ -29,11 +29,11 @@ spring:
 webprotege:
   rabbitmq:
     requestqueue: icatx-versioning-service-queue
-    responsequeue: icatx-versioning-service-queue
-    eventsqueue: icatx-versioning-service-queue
+    responsequeue: icatx-versioning-service-response-queue
     timeout: 120000
   allowedOrigin: webprotege-local.edu
-
+  versioning:
+    location: /srv/versioning/
 
 spring.security.oauth2:
   client:

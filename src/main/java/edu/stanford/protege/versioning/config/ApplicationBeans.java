@@ -3,7 +3,13 @@ package edu.stanford.protege.versioning.config;
 
 import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.module.SimpleModule;
+import edu.stanford.protege.versioning.entity.GetProjectEntityInfoRequest;
+import edu.stanford.protege.versioning.entity.GetProjectEntityInfoResponse;
+import edu.stanford.protege.versioning.owl.commands.GetAllOwlClassesRequest;
+import edu.stanford.protege.versioning.owl.commands.GetAllOwlClassesResponse;
 import edu.stanford.protege.webprotege.common.UserId;
+import edu.stanford.protege.webprotege.ipc.CommandExecutor;
+import edu.stanford.protege.webprotege.ipc.impl.CommandExecutorImpl;
 import edu.stanford.protege.webprotege.jackson.IriDeserializer;
 import edu.stanford.protege.webprotege.jackson.*;
 import org.semanticweb.owlapi.model.IRI;
@@ -39,5 +45,14 @@ public class ApplicationBeans implements WebMvcConfigurer {
     }
 
 
+    @Bean
+    CommandExecutor<GetAllOwlClassesRequest, GetAllOwlClassesResponse> executorForPostCoordination() {
+        return new CommandExecutorImpl<>(GetAllOwlClassesResponse.class);
+    }
 
+
+    @Bean
+    CommandExecutor<GetProjectEntityInfoRequest, GetProjectEntityInfoResponse> getEntityRequest(){
+        return new CommandExecutorImpl<>(GetProjectEntityInfoResponse.class);
+    }
 }
