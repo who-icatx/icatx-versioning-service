@@ -1,11 +1,11 @@
 package edu.stanford.protege.versioning.owl;
 
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.base.Stopwatch;
 import edu.stanford.protege.versioning.SecurityContextHelper;
 import edu.stanford.protege.versioning.entity.GetProjectEntityInfoRequest;
 import edu.stanford.protege.versioning.entity.GetProjectEntityInfoResponse;
-import edu.stanford.protege.versioning.entity.OWLEntityDto;
 import edu.stanford.protege.versioning.files.FileService;
 import edu.stanford.protege.versioning.owl.commands.GetAllOwlClassesRequest;
 import edu.stanford.protege.versioning.owl.commands.GetAllOwlClassesResponse;
@@ -16,7 +16,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
@@ -41,18 +40,24 @@ public class OwlClassesService {
     public List<IRI> getAllClasses(ProjectId projectId) throws ExecutionException, InterruptedException {
         List<IRI> response = getAllClassesCommand.execute(new GetAllOwlClassesRequest(projectId), SecurityContextHelper.getExecutionContext()).get().owlClassList();
         var stopwatch = Stopwatch.createStarted();
+        int fileCount = 0;
         for(IRI iri : response) {
             try {
-                OWLEntityDto dto = getEntityInfo.execute(new GetProjectEntityInfoRequest(projectId, iri), SecurityContextHelper.getExecutionContext()).get().entityDto();
-                LOGGER.info("Fetched " + dto.languageTerms().title());
-                fileService.writeEntities(dto);
+                if(!fileService.getEntityFile(iri, projectId).exists()) {
+                    JsonNode dto = getEntityInfo.execute(new GetProjectEntityInfoRequest(projectId, iri), SecurityContextHelper.getExecutionContext()).get().entityDto();
+                    fileService.writeEntities(iri, dto, projectId);
+                    LOGGER.error("Writing entity to file " + iri);
+                    fileCount++;
+                }
+
             }catch (Exception e){
                 LOGGER.error("Error fetching " + iri);
             }
         }
         stopwatch.stop();
-        LOGGER.info("{} Fetch 100 entities in {} ms",
+        LOGGER.error("{} Written {} entities in {} ms",
                 projectId,
+                fileCount,
                 stopwatch.elapsed()
                         .toMillis());
         return response;

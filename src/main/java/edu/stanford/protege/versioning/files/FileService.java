@@ -1,10 +1,10 @@
 package edu.stanford.protege.versioning.files;
 
 
-import com.fasterxml.jackson.core.exc.StreamWriteException;
-import com.fasterxml.jackson.databind.DatabindException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import edu.stanford.protege.versioning.entity.OWLEntityDto;
+import edu.stanford.protege.webprotege.common.ProjectId;
+import org.semanticweb.owlapi.model.IRI;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -28,13 +28,26 @@ public class FileService {
         this.objectMapper = objectMapper;
     }
 
-    public void writeEntities(OWLEntityDto dto) {
+
+    public File getEntityFile(IRI entityIri, ProjectId projectId) {
+        try {
+
+            File directory = new File(versioningLocation + projectId.id() + "/" + getLastThreeCharacters(entityIri.toString()));
+            return new File(directory, extractEntityId(entityIri.toString()) + ".json");
+
+        } catch (Exception e) {
+            LOGGER.error("Error finding file " + e);
+        }
+        return null;
+    }
+
+    public void writeEntities(IRI entityIri, JsonNode dto, ProjectId projectId) {
 
         // Extract the last 3 characters of the identifier
-        String lastThreeChars = getLastThreeCharacters(dto.entityIRI());
+        String lastThreeChars = getLastThreeCharacters(entityIri.toString());
 
         // Define the directory path
-        File directory = new File(versioningLocation + lastThreeChars);
+        File directory = new File(versioningLocation + projectId.id() + "/" + lastThreeChars);
 
         // Create the directory if it does not exist
         if (!directory.exists()) {
@@ -46,7 +59,7 @@ public class FileService {
         }
 
         // Write the object as JSON inside the directory
-        File jsonFile = new File(directory, extractEntityId(dto.entityIRI()) + ".json");
+        File jsonFile = new File(directory, extractEntityId(entityIri.toString()) + ".json");
         writeObjectToJsonFile(jsonFile, dto);
     }
 
@@ -66,7 +79,7 @@ public class FileService {
         throw new IllegalArgumentException("Invalid IRI: " + iri);
     }
 
-    private void writeObjectToJsonFile(File file, OWLEntityDto obj) {
+    private void writeObjectToJsonFile(File file, JsonNode obj) {
         try {
             objectMapper.writeValue(file, obj);
             System.out.println("Written JSON file: " + file.getAbsolutePath());

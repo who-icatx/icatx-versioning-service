@@ -40,7 +40,7 @@ public class ApplicationBeans implements WebMvcConfigurer {
         module.addSerializer(UserId.class, new UserIdSerializer());
         objectMapper.registerModule(module);
         objectMapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
-
+        objectMapper.enable(SerializationFeature.INDENT_OUTPUT);
         return objectMapper;
     }
 
