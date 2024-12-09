@@ -18,6 +18,18 @@ spring:
     password: guest
     publisher-confirm-type: correlated
     publisher-returns: true
+  data:
+    mongodb:
+      host: mongo
+      port: 27017
+      database: webprotege
+      auto-index-creation: true
+      uri: mongodb://${spring.data.mongodb.host}:${spring.data.mongodb.port}/${spring.data.mongodb.database}
+  minio:
+    accessKey: webprotege
+    endPoint: http://webprotege-local.edu:9000
+    secretKey: webprotege
+    uploads-bucket-name: webprotege-uploads
 
   security:
     oauth2:
@@ -32,6 +44,9 @@ webprotege:
     responsequeue: icatx-versioning-service-response-queue
     timeout: 120000
   allowedOrigin: webprotege-local.edu
+  directories:
+    data: /srv/webprotege
+
   versioning:
     location: /srv/versioning/
 
