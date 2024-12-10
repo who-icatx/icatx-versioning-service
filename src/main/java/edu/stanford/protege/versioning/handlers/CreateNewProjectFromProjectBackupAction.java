@@ -2,16 +2,17 @@ package edu.stanford.protege.versioning.handlers;
 
 import com.fasterxml.jackson.annotation.*;
 import com.google.common.base.Objects;
+import edu.stanford.protege.versioning.services.storage.dtos.NewProjectSettings;
 import edu.stanford.protege.webprotege.common.ProjectId;
 import edu.stanford.protege.webprotege.dispatch.Action;
-import edu.stanford.protege.webprotege.project.NewProjectSettings;
+
 
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static edu.stanford.protege.versioning.handlers.CreateNewProjectFromProjectBackupAction.CHANNEL;
 
 @JsonTypeName(CHANNEL)
 public record CreateNewProjectFromProjectBackupAction(
-        @JsonProperty("projectId") ProjectId newProjectId,
+        @JsonProperty("newProjectId") ProjectId newProjectId,
         @JsonProperty("newProjectSettings") NewProjectSettings newProjectSettings
 ) implements Action<CreateNewProjectFromProjectBackupResult> {
 

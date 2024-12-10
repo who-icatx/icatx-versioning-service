@@ -1,12 +1,11 @@
 package edu.stanford.protege.versioning.services.storage;
 
-import edu.stanford.protege.versioning.services.storage.dtos.ProjectBackupFiles;
-import edu.stanford.protege.webprotege.csv.DocumentId;
+import edu.stanford.protege.versioning.services.storage.dtos.*;
 
 import java.io.IOException;
 import java.nio.file.Path;
 
-public interface FileService {
+public interface StorageService {
 
     Path downloadFile(DocumentId location);
 

@@ -1,8 +1,10 @@
 package edu.stanford.protege.versioning.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.stereotype.Component;
 
-@ConfigurationProperties(prefix = "webprotege.minio")
+@ConfigurationProperties(prefix = "spring.minio")
+@Component
 public class MinioProperties {
 
     private String accessKey;

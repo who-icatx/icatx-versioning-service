@@ -3,7 +3,7 @@ package edu.stanford.protege.versioning.executors.ontology;
 
 import edu.stanford.protege.versioning.*;
 import edu.stanford.protege.webprotege.common.ProjectId;
-import edu.stanford.protege.webprotege.ipc.CommandExecutor;
+import edu.stanford.protege.webprotege.ipc.*;
 import edu.stanford.protege.webprotege.project.*;
 import org.slf4j.*;
 import org.springframework.stereotype.Service;
@@ -22,10 +22,10 @@ public class OntologyService {
     }
 
 
-    public ProjectDetails createNewProject(ProjectId newProjectId, NewProjectSettings newProjectSettings) {
+    public ProjectDetails createNewProject(ProjectId newProjectId, NewProjectSettings newProjectSettings, ExecutionContext executionContext) {
 
         try {
-            return createNewProjectExecutor.execute(new CreateNewProjectAction(newProjectId, newProjectSettings), SecurityContextHelper.getExecutionContext())
+            return createNewProjectExecutor.execute(new CreateNewProjectAction(newProjectId, newProjectSettings), executionContext)
                     .thenApply(CreateNewProjectResult::projectDetails)
                     .get();
         } catch (InterruptedException e) {

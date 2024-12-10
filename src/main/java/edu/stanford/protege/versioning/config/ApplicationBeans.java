@@ -8,7 +8,7 @@ import edu.stanford.protege.versioning.entity.GetProjectEntityInfoResponse;
 import edu.stanford.protege.versioning.owl.commands.GetAllOwlClassesRequest;
 import edu.stanford.protege.versioning.owl.commands.GetAllOwlClassesResponse;
 import edu.stanford.protege.versioning.services.storage.*;
-import edu.stanford.protege.webprotege.common.UserId;
+import edu.stanford.protege.webprotege.common.*;
 import edu.stanford.protege.webprotege.ipc.CommandExecutor;
 import edu.stanford.protege.webprotege.ipc.impl.CommandExecutorImpl;
 import edu.stanford.protege.webprotege.jackson.IriDeserializer;
@@ -53,11 +53,6 @@ public class ApplicationBeans implements WebMvcConfigurer {
     @Bean
     CommandExecutor<CreateNewProjectAction, CreateNewProjectResult> createNewProjectExecutor() {
         return new CommandExecutorImpl<>(CreateNewProjectResult.class);
-    }
-
-    @Bean
-    MinioProperties minioProperties() {
-        return new MinioProperties();
     }
 
     @Bean

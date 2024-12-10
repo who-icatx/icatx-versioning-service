@@ -46,7 +46,8 @@ public class CreateNewProjectFromProjectBackupCommandHandler implements Authoriz
                 NewProjectSettings.get(projectSettings.getProjectOwner(),
                         projectSettings.getDisplayName(),
                         projectSettings.getLangTag(),
-                        projectSettings.getProjectDescription())
+                        projectSettings.getProjectDescription()),
+                executionContext
         );
 
         if (projectSettings.hasSourceDocument()) {

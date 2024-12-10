@@ -2,8 +2,7 @@ package edu.stanford.protege.versioning.services.storage;
 
 import edu.stanford.protege.versioning.BackupFileProcessingException;
 import edu.stanford.protege.versioning.config.MinioProperties;
-import edu.stanford.protege.versioning.services.storage.dtos.ProjectBackupFiles;
-import edu.stanford.protege.webprotege.csv.DocumentId;
+import edu.stanford.protege.versioning.services.storage.dtos.*;
 import io.minio.*;
 import io.minio.errors.*;
 import org.apache.commons.io.FileUtils;
@@ -15,12 +14,12 @@ import java.security.*;
 import java.util.*;
 
 @Service
-public class FileServiceImpl implements FileService {
+public class StorageServiceImpl implements StorageService {
 
     private final MinioClient minioClient;
     private final MinioProperties minioProperties;
 
-    public FileServiceImpl(MinioClient minioClient, MinioProperties minioProperties) {
+    public StorageServiceImpl(MinioClient minioClient, MinioProperties minioProperties) {
         this.minioClient = minioClient;
         this.minioProperties = minioProperties;
     }
@@ -33,7 +32,7 @@ public class FileServiceImpl implements FileService {
             minioClient.downloadObject(DownloadObjectArgs.builder()
                     .filename(destinationPath.toString())
                     .bucket(minioProperties.getUploadsBucketName())
-                    .object(documentId.id())
+                    .object(documentId.getDocumentId())
                     .build());
 
             return destinationPath;

@@ -19,17 +19,14 @@ public class PythonServiceImpl implements PythonService {
     @Value("${spring.data.mongodb.database}")
     private String dbName;
 
+    private static final String IMPORT_BACKUP_COLLECTIONS_SCRIPT = "/app/import-backup-collections.py";
 
     @Override
     public void importMongoCollections(ProjectId projectId, Path inputDirectory) {
-        Path scriptPath = null;
         try {
-            scriptPath = extractScriptFromResources("import-backup-collections.py");
-
-
             ProcessBuilder processBuilder = new ProcessBuilder(
                     "python",
-                    scriptPath.toAbsolutePath().toString(),
+                    IMPORT_BACKUP_COLLECTIONS_SCRIPT,
                     mongoUri,
                     dbName,
                     inputDirectory.toString(),
@@ -59,34 +56,7 @@ public class PythonServiceImpl implements PythonService {
             String message = "Failed to import Mongo collections";
             logger.error(message);
             throw new RuntimeException(message, e);
-        } finally {
-            if (scriptPath != null) {
-                try {
-                    Files.deleteIfExists(scriptPath);
-                    logger.info("Temporary script file deleted: " + scriptPath);
-                } catch (IOException e) {
-                    logger.error("Failed to delete temporary script file: " + scriptPath);
-                }
-            }
         }
     }
-
-    private Path extractScriptFromResources(String resourceName) throws IOException {
-        try (InputStream resourceStream = getClass().getClassLoader().getResourceAsStream(resourceName)) {
-            if (resourceStream == null) {
-                throw new FileNotFoundException("Resource not found: " + resourceName);
-            }
-
-            Path tempFile = Files.createTempFile("script", ".py");
-            tempFile.toFile().deleteOnExit();
-
-            try (OutputStream outputStream = Files.newOutputStream(tempFile)) {
-                resourceStream.transferTo(outputStream);
-            }
-
-            return tempFile;
-        }
-    }
-
 }
 
