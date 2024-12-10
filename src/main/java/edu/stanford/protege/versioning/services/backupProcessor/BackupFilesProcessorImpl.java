@@ -43,7 +43,7 @@ public class BackupFilesProcessorImpl implements BackupFilesProcessor {
             throw new BackupFileProcessingException(message, e);
         }finally {
             try {
-                storageService.cleanUpFiles(downloadedFiles.getParent());
+                storageService.cleanUpFiles(downloadedFiles);
             } catch (IOException e) {
                 String message = "Error while trying to cleanup backup files";
                 logger.error(message, e);

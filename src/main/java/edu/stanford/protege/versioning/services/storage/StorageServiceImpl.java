@@ -53,7 +53,7 @@ public class StorageServiceImpl implements StorageService {
 
     @Override
     public void cleanUpFiles(Path pathToFiles) throws IOException {
-        FileUtils.deleteDirectory(pathToFiles.toFile());
+        FileUtils.forceDelete(pathToFiles.toFile());
     }
 
     @Override

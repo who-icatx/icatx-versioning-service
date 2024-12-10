@@ -6,7 +6,6 @@ import org.springframework.stereotype.Component;
 
 import java.io.*;
 import java.nio.file.*;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * Matthew Horridge
@@ -22,16 +21,14 @@ public class RevisionHistoryReplacer {
         this.changeHistoryFileFactory = changeHistoryFileFactory;
     }
 
-    public CompletableFuture<Void> replaceRevisionHistory(ProjectId projectId, Path revisionHistory) {
-        return CompletableFuture.supplyAsync(() -> {
-            try {
-                var projectHistoryFile = changeHistoryFileFactory.getChangeHistoryFile(projectId).toPath();
-                Files.createDirectories(projectHistoryFile.getParent());
-                Files.move(revisionHistory, projectHistoryFile);
-                return null;
-            } catch (IOException e) {
-                throw new UncheckedIOException(e);
-            }
-        });
+    public void replaceRevisionHistory(ProjectId projectId, Path revisionHistory) {
+
+        try {
+            var projectHistoryFile = changeHistoryFileFactory.getChangeHistoryFile(projectId).toPath();
+            Files.createDirectories(projectHistoryFile.getParent());
+            Files.move(revisionHistory, projectHistoryFile);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 }

@@ -3,7 +3,7 @@ package edu.stanford.protege.versioning.config;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
-@ConfigurationProperties(prefix = "spring.minio")
+@ConfigurationProperties(prefix = "webprotege.minio")
 @Component
 public class MinioProperties {
 

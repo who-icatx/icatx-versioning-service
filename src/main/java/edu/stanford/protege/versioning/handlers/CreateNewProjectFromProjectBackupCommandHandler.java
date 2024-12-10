@@ -51,7 +51,7 @@ public class CreateNewProjectFromProjectBackupCommandHandler implements Authoriz
         );
 
         if (projectSettings.hasSourceDocument()) {
-            backupFilesProcessor.processBackupFiles(request.newProjectId(), projectSettings.getSourceDocumentId().get());
+            backupFilesProcessor.processBackupFiles(projectDetails.projectId(), projectSettings.getSourceDocumentId().get());
         }
 
         return Mono.just(CreateNewProjectFromProjectBackupResult.create(projectDetails));

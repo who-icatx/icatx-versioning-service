@@ -3,6 +3,7 @@ import json
 import subprocess
 import sys
 import time
+import uuid
 
 def replace_project_id_in_json(input_path, new_project_id):
     """
@@ -23,7 +24,7 @@ def replace_project_id_in_json(input_path, new_project_id):
                 with open(file_path, 'r', encoding='utf-8') as infile, open(temp_file_path, 'w', encoding='utf-8') as outfile:
                     for line in infile:
                         document = json.loads(line)
-                        document.pop('_id', None)  # Remove `_id` field
+                        document['_id'] = str(uuid.uuid4())  # replace `_id` field
                         document['projectId'] = new_project_id # Update `projectId`
                         outfile.write(json.dumps(document) + '\n')
 
@@ -57,8 +58,7 @@ def import_json_to_mongo(mongo_uri, db_name, input_path):
                     "--uri", mongo_uri,
                     "--db", db_name,
                     "--collection", collection_name,
-                    "--file", file_path,
-                    "--jsonArray"
+                    "--file", file_path
                 ], check=True)
 
         print("All collections imported successfully!")
@@ -70,7 +70,7 @@ def import_json_to_mongo(mongo_uri, db_name, input_path):
 
 if __name__ == "__main__":
     if len(sys.argv) != 5:
-        print("Usage: python import-backup-collections.py <mongoUri> <dbName> <inputPath> <newProjectId>")
+        print("Usage: python import_project.py <mongoUri> <dbName> <inputPath> <newProjectId>")
         sys.exit(1)
 
     mongo_uri = sys.argv[1]
