@@ -50,6 +50,7 @@ webprotege:
     endPoint: http://webprotege-local.edu:9000
     secretKey: webprotege
     uploads-bucket-name: webprotege-uploads
+    versioning-bucket-name: webprotege-uploads
 
 spring.security.oauth2:
   client:

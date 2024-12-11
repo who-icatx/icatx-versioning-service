@@ -3,6 +3,7 @@ package edu.stanford.protege.versioning.services.storage;
 import edu.stanford.protege.versioning.BackupFileProcessingException;
 import edu.stanford.protege.versioning.config.MinioProperties;
 import edu.stanford.protege.versioning.services.storage.dtos.*;
+import edu.stanford.protege.webprotege.common.BlobLocation;
 import io.minio.*;
 import io.minio.errors.*;
 import org.apache.commons.io.FileUtils;
@@ -48,6 +49,7 @@ public class StorageServiceImpl implements StorageService {
         var tempDirectory = Files.createTempDirectory("webprotege-extracted-backup-files");
         ZipFileExtractor extractor = new ZipFileExtractor();
         extractor.extractFileToDirectory(zipFile, tempDirectory);
+        cleanUpFiles(zipFile);
         return tempDirectory;
     }
 
@@ -85,11 +87,52 @@ public class StorageServiceImpl implements StorageService {
         }
     }
 
+    @Override
+    public BlobLocation uploadFileToMinio(Path fileToUpload) throws IOException {
+
+        try {
+            return storeFile(fileToUpload);
+        } catch (ServerException | InsufficientDataException | ErrorResponseException | IOException |
+                 NoSuchAlgorithmException | InvalidKeyException | InvalidResponseException | XmlParserException |
+                 InternalException e) {
+            throw new BackupFileProcessingException("Could not store file to minio", e);
+        } finally {
+            cleanUpFiles(fileToUpload);
+        }
+    }
+
+    private BlobLocation storeFile(Path tempFile) throws ErrorResponseException, InsufficientDataException, InternalException, InvalidKeyException, InvalidResponseException, IOException, NoSuchAlgorithmException, ServerException, XmlParserException {
+        var location = generateBlobLocation();
+        // Create bucket if necessary
+        createBucketIfNecessary(location);
+        minioClient.uploadObject(UploadObjectArgs.builder()
+                .filename(tempFile.toString())
+                .bucket(location.bucket())
+                .object(location.name())
+                .contentType("application/octet-stream")
+                .build());
+        return location;
+    }
+
+    private void createBucketIfNecessary(BlobLocation location) throws ErrorResponseException, InsufficientDataException, InternalException, InvalidKeyException, InvalidResponseException, IOException, NoSuchAlgorithmException, ServerException, XmlParserException {
+        if (!minioClient.bucketExists(BucketExistsArgs.builder().bucket(location.bucket()).build())) {
+            minioClient.makeBucket(MakeBucketArgs.builder().bucket(location.bucket()).build());
+        }
+    }
+
     private Path createTempFile() {
         try {
-            return Files.createTempFile("webprotege-backup-file", null);
+            return Files.createTempFile("webprotege-backup-file-", UUID.randomUUID().toString());
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+    }
+
+    private BlobLocation generateBlobLocation() {
+        return new BlobLocation(minioProperties.getVersioningBucketName(), generateObjectName());
+    }
+
+    private static String generateObjectName() {
+        return "versioning-" + UUID.randomUUID();
     }
 }

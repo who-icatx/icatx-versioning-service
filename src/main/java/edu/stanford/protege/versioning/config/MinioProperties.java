@@ -15,6 +15,8 @@ public class MinioProperties {
 
     private String uploadsBucketName;
 
+    private String versioningBucketName;
+
     public void setAccessKey(String accessKey) {
         this.accessKey = accessKey;
     }
@@ -25,6 +27,14 @@ public class MinioProperties {
 
     public void setEndPoint(String endPoint) {
         this.endPoint = endPoint;
+    }
+
+    public void setUploadsBucketName(String uploadsBucketName) {
+        this.uploadsBucketName = uploadsBucketName;
+    }
+
+    public void setVersioningBucketName(String versioningBucketName) {
+        this.versioningBucketName = versioningBucketName;
     }
 
     public String getAccessKey() {
@@ -43,7 +53,7 @@ public class MinioProperties {
         return uploadsBucketName;
     }
 
-    public void setUploadsBucketName(String uploadsBucketName) {
-        this.uploadsBucketName = uploadsBucketName;
+    public String getVersioningBucketName() {
+        return versioningBucketName;
     }
 }

@@ -4,7 +4,7 @@ import edu.stanford.protege.versioning.BackupFileProcessingException;
 import edu.stanford.protege.versioning.services.python.PythonService;
 import edu.stanford.protege.versioning.services.storage.*;
 import edu.stanford.protege.versioning.services.storage.dtos.*;
-import edu.stanford.protege.webprotege.common.ProjectId;
+import edu.stanford.protege.webprotege.common.*;
 import org.slf4j.*;
 import org.springframework.stereotype.Service;
 
@@ -19,29 +19,28 @@ public class BackupFilesProcessorImpl implements BackupFilesProcessor {
     private final PythonService pythonService;
     private final StorageService storageService;
 
-    private final RevisionHistoryReplacer revisionHistoryReplacer;
 
     public BackupFilesProcessorImpl(PythonService pythonService,
-                                    StorageService storageService,
-                                    RevisionHistoryReplacer revisionHistoryReplacer) {
+                                    StorageService storageService) {
         this.pythonService = pythonService;
         this.storageService = storageService;
-        this.revisionHistoryReplacer = revisionHistoryReplacer;
     }
 
     @Override
-    public void processBackupFiles(ProjectId projectId, DocumentId documentId){
+    public BlobLocation prepareOwlBinaryAndImportCollections(ProjectId projectId, DocumentId documentId) {
         var downloadedFiles = storageService.downloadFile(documentId);
         try {
             var backupFiles = storageService.extractBackupFiles(downloadedFiles);
             ProjectBackupFiles projectBackupFiles = storageService.getProjectBackupFilesFromPath(backupFiles);
-            revisionHistoryReplacer.replaceRevisionHistory(projectId, projectBackupFiles.owlBinaryFile().toPath());
+            BlobLocation owlBinaryLocation = storageService.uploadFileToMinio(projectBackupFiles.owlBinaryFile().toPath());
             pythonService.importMongoCollections(projectId, backupFiles);
+            storageService.cleanUpFiles(backupFiles);
+            return owlBinaryLocation;
         } catch (IOException e) {
-            String message = "Error while extracting backup files from archive";
+            String message = "Error while preparing backup files for use";
             logger.error(message, e);
             throw new BackupFileProcessingException(message, e);
-        }finally {
+        } finally {
             try {
                 storageService.cleanUpFiles(downloadedFiles);
             } catch (IOException e) {
