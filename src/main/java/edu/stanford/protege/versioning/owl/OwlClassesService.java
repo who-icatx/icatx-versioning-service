@@ -16,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
@@ -37,16 +38,17 @@ public class OwlClassesService {
     }
 
 
-    public List<IRI> getAllClasses(ProjectId projectId) throws ExecutionException, InterruptedException {
-        List<IRI> response = getAllClassesCommand.execute(new GetAllOwlClassesRequest(projectId), SecurityContextHelper.getExecutionContext()).get().owlClassList();
+    public List<IRI> saveInitialLoad(ProjectId projectId) throws ExecutionException, InterruptedException {
+        List<IRI> initialIris = getAllClassesCommand.execute(new GetAllOwlClassesRequest(projectId), SecurityContextHelper.getExecutionContext()).get().owlClassList();
         var stopwatch = Stopwatch.createStarted();
+        List<IRI> response = new ArrayList<>();
         int fileCount = 0;
-        for(IRI iri : response) {
+        for(IRI iri : initialIris) {
             try {
                 if(!fileService.getEntityFile(iri, projectId).exists()) {
                     JsonNode dto = getEntityInfo.execute(new GetProjectEntityInfoRequest(projectId, iri), SecurityContextHelper.getExecutionContext()).get().entityDto();
                     fileService.writeEntities(iri, dto, projectId);
-                    LOGGER.error("Writing entity to file " + iri);
+                    response.add(iri);
                     fileCount++;
                 }
 
@@ -55,7 +57,7 @@ public class OwlClassesService {
             }
         }
         stopwatch.stop();
-        LOGGER.error("{} Written {} entities in {} ms",
+        LOGGER.info("{} Written {} entities in {} ms",
                 projectId,
                 fileCount,
                 stopwatch.elapsed()
