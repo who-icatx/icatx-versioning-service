@@ -21,7 +21,13 @@ public class VersioningCommandsController {
 
     @PostMapping(value = {"/{projectId}/initial-files"})
     public ResponseEntity<List<IRI>> createInitialFiles(@PathVariable String projectId) throws ExecutionException, InterruptedException {
-        List<IRI> savedIris = service.saveInitialLoad(ProjectId.valueOf(projectId));
+        List<IRI> savedIris = service.saveInitialOntologyInfo(ProjectId.valueOf(projectId));
         return ResponseEntity.ok(savedIris);
+    }
+
+    @GetMapping(value = {"/{projectId}/save-changed-entities"})
+    public ResponseEntity<List<IRI>> testSaveChangedEntities(@PathVariable String projectId){
+        List<IRI> updatedIris = service.saveEntitiesSinceLastBackupDate(ProjectId.valueOf(projectId));
+        return ResponseEntity.ok(updatedIris);
     }
 }
