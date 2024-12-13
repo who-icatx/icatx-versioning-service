@@ -3,28 +3,20 @@ package edu.stanford.protege.versioning.config;
 
 import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.module.SimpleModule;
-import edu.stanford.protege.versioning.entity.GetProjectEntityInfoRequest;
-import edu.stanford.protege.versioning.entity.GetProjectEntityInfoResponse;
-import edu.stanford.protege.versioning.owl.commands.GetAllOwlClassesRequest;
-import edu.stanford.protege.versioning.owl.commands.GetAllOwlClassesResponse;
-import edu.stanford.protege.versioning.services.storage.*;
-import edu.stanford.protege.webprotege.common.*;
+import edu.stanford.protege.versioning.entity.*;
+import edu.stanford.protege.versioning.owl.commands.*;
+import edu.stanford.protege.webprotege.common.UserId;
 import edu.stanford.protege.webprotege.ipc.CommandExecutor;
 import edu.stanford.protege.webprotege.ipc.impl.CommandExecutorImpl;
 import edu.stanford.protege.webprotege.jackson.IriDeserializer;
 import edu.stanford.protege.webprotege.jackson.*;
 import edu.stanford.protege.webprotege.project.*;
-import edu.stanford.protege.webprotege.revision.ChangeHistoryFileFactory;
 import io.minio.MinioClient;
 import org.semanticweb.owlapi.model.IRI;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.web.servlet.config.annotation.PathMatchConfigurer;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.springframework.context.annotation.*;
+import org.springframework.web.servlet.config.annotation.*;
 import org.springframework.web.util.UrlPathHelper;
 import uk.ac.manchester.cs.owl.owlapi.OWLDataFactoryImpl;
-
-import java.io.File;
 
 @Configuration
 public class ApplicationBeans implements WebMvcConfigurer {
@@ -63,28 +55,6 @@ public class ApplicationBeans implements WebMvcConfigurer {
                 .build();
     }
 
-
-    @Bean
-    DataDirectoryProvider getDataDirectoryProvider() {
-        return new DataDirectoryProvider();
-    }
-
-    @Bean
-    @DataDirectory
-    public File provideDataDirectory(DataDirectoryProvider provider) {
-        return provider.get();
-    }
-
-    @Bean
-    edu.stanford.protege.webprotege.revision.ProjectDirectoryFactory projectDirectoryFactoryRev(@DataDirectory File dataDirectory) {
-        return new edu.stanford.protege.webprotege.revision.ProjectDirectoryFactory(dataDirectory);
-    }
-
-    @Bean
-    ChangeHistoryFileFactory getChangeHistoryFileFactory(edu.stanford.protege.webprotege.revision.ProjectDirectoryFactory projectDirectoryFactory) {
-        return new ChangeHistoryFileFactory(projectDirectoryFactory);
-    }
-
     @Bean
     CommandExecutor<GetAllOwlClassesRequest, GetAllOwlClassesResponse> executorForPostCoordination() {
         return new CommandExecutorImpl<>(GetAllOwlClassesResponse.class);
@@ -92,7 +62,7 @@ public class ApplicationBeans implements WebMvcConfigurer {
 
 
     @Bean
-    CommandExecutor<GetProjectEntityInfoRequest, GetProjectEntityInfoResponse> getEntityRequest(){
+    CommandExecutor<GetProjectEntityInfoRequest, GetProjectEntityInfoResponse> getEntityRequest() {
         return new CommandExecutorImpl<>(GetProjectEntityInfoResponse.class);
     }
 }
