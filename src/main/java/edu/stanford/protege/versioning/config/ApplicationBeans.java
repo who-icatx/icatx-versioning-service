@@ -10,7 +10,6 @@ import edu.stanford.protege.webprotege.ipc.CommandExecutor;
 import edu.stanford.protege.webprotege.ipc.impl.CommandExecutorImpl;
 import edu.stanford.protege.webprotege.jackson.IriDeserializer;
 import edu.stanford.protege.webprotege.jackson.*;
-import edu.stanford.protege.webprotege.project.*;
 import io.minio.MinioClient;
 import org.semanticweb.owlapi.model.IRI;
 import org.springframework.context.annotation.*;
@@ -40,11 +39,6 @@ public class ApplicationBeans implements WebMvcConfigurer {
         objectMapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
         objectMapper.enable(SerializationFeature.INDENT_OUTPUT);
         return objectMapper;
-    }
-
-    @Bean
-    CommandExecutor<CreateNewProjectAction, CreateNewProjectResult> createNewProjectExecutor() {
-        return new CommandExecutorImpl<>(CreateNewProjectResult.class);
     }
 
     @Bean
