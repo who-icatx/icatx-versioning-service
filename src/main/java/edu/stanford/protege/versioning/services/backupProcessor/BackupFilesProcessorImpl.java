@@ -40,7 +40,8 @@ public class BackupFilesProcessorImpl implements BackupFilesProcessor {
             String message = "Error while preparing backup files for use";
             logger.error(message, e);
             throw new BackupFileProcessingException(message, e);
-        } finally {
+        }
+        finally {
             try {
                 storageService.cleanUpFiles(downloadedFiles);
             } catch (IOException e) {

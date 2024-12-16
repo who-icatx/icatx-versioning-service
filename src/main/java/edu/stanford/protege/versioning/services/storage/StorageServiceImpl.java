@@ -55,7 +55,9 @@ public class StorageServiceImpl implements StorageService {
 
     @Override
     public void cleanUpFiles(Path pathToFiles) throws IOException {
-        FileUtils.forceDelete(pathToFiles.toFile());
+        if (Files.exists(pathToFiles)) {
+            FileUtils.forceDelete(pathToFiles.toFile());
+        }
     }
 
     @Override
