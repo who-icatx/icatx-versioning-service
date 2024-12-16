@@ -27,6 +27,7 @@ LABEL MAINTAINER="protege.stanford.edu"
 # Install Java
 RUN apt-get update && \
     apt-get install -y openjdk-17-jdk && \
+    apt-get install -y git && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Copy MongoDB tools from the python-base stage

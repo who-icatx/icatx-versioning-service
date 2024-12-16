@@ -3,13 +3,12 @@ package edu.stanford.protege.versioning.controllers;
 
 import edu.stanford.protege.versioning.owl.OwlClassesService;
 import edu.stanford.protege.webprotege.common.ProjectId;
+import org.semanticweb.owlapi.model.IRI;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 @RestController
@@ -20,9 +19,15 @@ public class VersioningCommandsController {
     @Autowired
     private OwlClassesService service;
 
-    @GetMapping(value = {"/{projectId}"})
-    public ResponseEntity<String> testMethod(@PathVariable String projectId) throws ExecutionException, InterruptedException {
-        service.getAllClasses(ProjectId.valueOf(projectId));
-        return ResponseEntity.ok("This is okay");
+    @PostMapping(value = {"/{projectId}/initial-files"})
+    public ResponseEntity<List<IRI>> createInitialFiles(@PathVariable String projectId) throws ExecutionException, InterruptedException {
+        List<IRI> savedIris = service.saveInitialOntologyInfo(ProjectId.valueOf(projectId));
+        return ResponseEntity.ok(savedIris);
+    }
+
+    @GetMapping(value = {"/{projectId}/save-changed-entities"})
+    public ResponseEntity<List<IRI>> testSaveChangedEntities(@PathVariable String projectId){
+        List<IRI> updatedIris = service.saveEntitiesSinceLastBackupDate(ProjectId.valueOf(projectId));
+        return ResponseEntity.ok(updatedIris);
     }
 }

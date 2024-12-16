@@ -10,12 +10,14 @@ import edu.stanford.protege.webprotege.ipc.CommandExecutor;
 import edu.stanford.protege.webprotege.ipc.impl.CommandExecutorImpl;
 import edu.stanford.protege.webprotege.jackson.IriDeserializer;
 import edu.stanford.protege.webprotege.jackson.*;
-import io.minio.MinioClient;
 import org.semanticweb.owlapi.model.IRI;
 import org.springframework.context.annotation.*;
 import org.springframework.web.servlet.config.annotation.*;
 import org.springframework.web.util.UrlPathHelper;
 import uk.ac.manchester.cs.owl.owlapi.OWLDataFactoryImpl;
+import edu.stanford.protege.versioning.history.GetChangedEntitiesRequest;
+import edu.stanford.protege.versioning.history.GetChangedEntitiesResponse;
+import io.minio.MinioClient;
 
 @Configuration
 public class ApplicationBeans implements WebMvcConfigurer {
@@ -59,4 +61,10 @@ public class ApplicationBeans implements WebMvcConfigurer {
     CommandExecutor<GetProjectEntityInfoRequest, GetProjectEntityInfoResponse> getEntityRequest() {
         return new CommandExecutorImpl<>(GetProjectEntityInfoResponse.class);
     }
+    @Bean
+    CommandExecutor<GetChangedEntitiesRequest, GetChangedEntitiesResponse> changedEntitiesExecutor(){
+        return new CommandExecutorImpl<>(GetChangedEntitiesResponse.class);
+    }
+
+
 }
