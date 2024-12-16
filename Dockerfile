@@ -18,6 +18,8 @@ RUN pip install --no-cache-dir -r /app/requirements.txt
 
 # Copy Python script
 COPY src/main/resources/import-backup-collections.py /app/import-backup-collections.py
+COPY src/main/resources/dump-project-collections.py /app/dump-project-collections.py
+COPY src/main/resources/dump-mongo.py /app/dump-mongo.py
 
 # Final combined image
 FROM python:3.10-slim

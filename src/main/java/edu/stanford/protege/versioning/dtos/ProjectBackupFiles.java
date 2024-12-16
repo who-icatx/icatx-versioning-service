@@ -1,4 +1,4 @@
-package edu.stanford.protege.versioning.services.storage.dtos;
+package edu.stanford.protege.versioning.dtos;
 
 import java.io.File;
 import java.util.List;

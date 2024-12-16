@@ -12,8 +12,7 @@ import edu.stanford.protege.versioning.files.FileService;
 import edu.stanford.protege.versioning.history.ChangedEntities;
 import edu.stanford.protege.versioning.history.GetChangedEntitiesRequest;
 import edu.stanford.protege.versioning.history.GetChangedEntitiesResponse;
-import edu.stanford.protege.versioning.owl.commands.GetAllOwlClassesRequest;
-import edu.stanford.protege.versioning.owl.commands.GetAllOwlClassesResponse;
+import edu.stanford.protege.versioning.owl.commands.*;
 import edu.stanford.protege.versioning.repository.ReproducibleProjectsRepository;
 import edu.stanford.protege.webprotege.common.ProjectId;
 import edu.stanford.protege.webprotege.ipc.CommandExecutor;
@@ -36,6 +35,7 @@ public class OwlClassesService {
 
     private final CommandExecutor<GetProjectEntityInfoRequest, GetProjectEntityInfoResponse> getEntityInfo;
     private final CommandExecutor<GetChangedEntitiesRequest, GetChangedEntitiesResponse> changedEntitiesExecutor;
+    private final CommandExecutor<CreateBackupOwlFileRequest, CreateBackupOwlFileResponse> createBackupOwlFileExecutor;
 
     private final FileService fileService;
 
@@ -44,11 +44,13 @@ public class OwlClassesService {
     public OwlClassesService(CommandExecutor<GetAllOwlClassesRequest, GetAllOwlClassesResponse> getAllClassesCommand,
                              CommandExecutor<GetProjectEntityInfoRequest, GetProjectEntityInfoResponse> getEntityInfo,
                              CommandExecutor<GetChangedEntitiesRequest, GetChangedEntitiesResponse> changedEntitiesExecutor,
+                             CommandExecutor<CreateBackupOwlFileRequest, CreateBackupOwlFileResponse> createBackupOwlFileExecutor,
                              FileService fileService,
                              ReproducibleProjectsRepository reproducibleProjectsRepository) {
         this.getAllClassesCommand = getAllClassesCommand;
         this.getEntityInfo = getEntityInfo;
         this.changedEntitiesExecutor = changedEntitiesExecutor;
+        this.createBackupOwlFileExecutor = createBackupOwlFileExecutor;
         this.fileService = fileService;
         this.reproducibleProjectsRepository = reproducibleProjectsRepository;
     }
@@ -118,5 +120,14 @@ public class OwlClassesService {
             throw new ApplicationException("Error fetching changed entities");
         }
         return response;
+    }
+
+    public String makeBackupForOwlBinaryFile(ProjectId projectId) {
+        try {
+            return createBackupOwlFileExecutor.execute(CreateBackupOwlFileRequest.create(projectId), SecurityContextHelper.getExecutionContext()).get().owlFileBackupLocation();
+        } catch (Exception e) {
+            LOGGER.error("Error creating backup for owl file for projectId:"+projectId, e);
+            throw new ApplicationException("Error creating backup for owl file for projectId:"+projectId);
+        }
     }
 }

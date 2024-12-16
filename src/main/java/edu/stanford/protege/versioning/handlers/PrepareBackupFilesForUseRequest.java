@@ -1,7 +1,7 @@
 package edu.stanford.protege.versioning.handlers;
 
 import com.fasterxml.jackson.annotation.*;
-import edu.stanford.protege.versioning.services.storage.dtos.DocumentId;
+import edu.stanford.protege.versioning.dtos.DocumentId;
 import edu.stanford.protege.webprotege.common.*;
 
 @JsonTypeName(PrepareBackupFilesForUseRequest.CHANNEL)

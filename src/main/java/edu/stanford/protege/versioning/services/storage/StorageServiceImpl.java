@@ -2,20 +2,25 @@ package edu.stanford.protege.versioning.services.storage;
 
 import edu.stanford.protege.versioning.BackupFileProcessingException;
 import edu.stanford.protege.versioning.config.MinioProperties;
-import edu.stanford.protege.versioning.services.storage.dtos.*;
-import edu.stanford.protege.webprotege.common.BlobLocation;
+import edu.stanford.protege.versioning.dtos.*;
+import edu.stanford.protege.webprotege.common.*;
 import io.minio.*;
 import io.minio.errors.*;
 import org.apache.commons.io.FileUtils;
+import org.slf4j.*;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
 import java.nio.file.*;
 import java.security.*;
 import java.util.*;
+import java.util.stream.Stream;
+import java.util.zip.*;
 
 @Service
 public class StorageServiceImpl implements StorageService {
+
+    private static final Logger logger = LoggerFactory.getLogger(StorageServiceImpl.class);
 
     private final MinioClient minioClient;
     private final MinioProperties minioProperties;
@@ -33,7 +38,7 @@ public class StorageServiceImpl implements StorageService {
             minioClient.downloadObject(DownloadObjectArgs.builder()
                     .filename(destinationPath.toString())
                     .bucket(minioProperties.getUploadsBucketName())
-                    .object(documentId.getDocumentId())
+                    .object(documentId.documentId())
                     .build());
 
             return destinationPath;
@@ -136,5 +141,43 @@ public class StorageServiceImpl implements StorageService {
 
     private static String generateObjectName() {
         return "versioning-" + UUID.randomUUID();
+    }
+
+    public Path combineFilesIntoArchive(MongoCollectionsTempFiles mongoCollections, String owlBinaryFile, ProjectId projectId, Path outputPath) {
+        try {
+            Path owlBinaryPath = Paths.get(owlBinaryFile);
+            Path targetOwlBinaryPath = mongoCollections.getBaseDirectory().resolve(owlBinaryPath.getFileName());
+            Files.copy(owlBinaryPath, targetOwlBinaryPath, StandardCopyOption.REPLACE_EXISTING);
+            logger.info("Added owlBinary file to the temporary directory: {}", targetOwlBinaryPath);
+
+            Path finalArchivePath = Paths.get(outputPath.toString(), String.format("%s-backup.zip", System.currentTimeMillis()));
+            zipDirectory(mongoCollections.getBaseDirectory(), finalArchivePath);
+            logger.info("Final archive created at: {}", finalArchivePath);
+
+            return finalArchivePath;
+
+        } catch (IOException e) {
+            throw new RuntimeException("Error combining files into archive", e);
+        }
+    }
+
+    public void zipDirectory(Path sourceDir, Path archivePath) throws IOException {
+        try (
+                ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(archivePath.toFile()));
+                Stream<Path> filesInDirectory = Files.walk(sourceDir)
+        ) {
+            filesInDirectory.forEach(path -> {
+                try {
+                    if (!Files.isDirectory(path)) {
+                        ZipEntry entry = new ZipEntry(sourceDir.relativize(path).toString());
+                        zos.putNextEntry(entry);
+                        Files.copy(path, zos);
+                        zos.closeEntry();
+                    }
+                } catch (IOException e) {
+                    throw new UncheckedIOException(e);
+                }
+            });
+        }
     }
 }

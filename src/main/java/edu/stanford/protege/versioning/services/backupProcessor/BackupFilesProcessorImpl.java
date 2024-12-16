@@ -1,9 +1,9 @@
 package edu.stanford.protege.versioning.services.backupProcessor;
 
 import edu.stanford.protege.versioning.BackupFileProcessingException;
+import edu.stanford.protege.versioning.dtos.*;
 import edu.stanford.protege.versioning.services.python.PythonService;
-import edu.stanford.protege.versioning.services.storage.*;
-import edu.stanford.protege.versioning.services.storage.dtos.*;
+import edu.stanford.protege.versioning.services.storage.StorageService;
 import edu.stanford.protege.webprotege.common.*;
 import org.slf4j.*;
 import org.springframework.stereotype.Service;
@@ -40,8 +40,7 @@ public class BackupFilesProcessorImpl implements BackupFilesProcessor {
             String message = "Error while preparing backup files for use";
             logger.error(message, e);
             throw new BackupFileProcessingException(message, e);
-        }
-        finally {
+        } finally {
             try {
                 storageService.cleanUpFiles(downloadedFiles);
             } catch (IOException e) {
@@ -49,5 +48,15 @@ public class BackupFilesProcessorImpl implements BackupFilesProcessor {
                 logger.error(message, e);
             }
         }
+    }
+
+    @Override
+    public void dumpMongoDb() {
+        pythonService.createMongoDump();
+    }
+
+    @Override
+    public MongoCollectionsTempFiles createCollectionsBackup(ProjectId projectId) {
+       return pythonService.createCollectionsBackup(projectId);
     }
 }

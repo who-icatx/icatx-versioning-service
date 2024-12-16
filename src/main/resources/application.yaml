@@ -54,6 +54,9 @@ webprotege:
     uploads-bucket-name: webprotege-uploads
     versioning-bucket-name: webprotege-uploads
 
+  directories:
+    backup: /webprotege/backup
+
 spring.security.oauth2:
   client:
     registration.keycloak:
