@@ -47,15 +47,14 @@ public class VersioningCommandsController {
         ProjectId project = ProjectId.valueOf(projectId);
         ProjectBackupDirectoryProvider backupDirectoryProvider = new ProjectBackupDirectoryProvider(project);
 
-        CompletableFuture<List<IRI>> saveEntitiesTask = CompletableFuture.supplyAsync(() -> service.saveEntitiesSinceLastBackupDate(project));
         CompletableFuture<String> backupOwlBinaryTask = CompletableFuture.supplyAsync(() -> service.makeBackupForOwlBinaryFile(project));
         CompletableFuture<Void> dumpMongoTask = CompletableFuture.runAsync(() -> backupService.dumpMongoDb());
         CompletableFuture<MongoCollectionsTempFiles> createCollectionsBackupTask = CompletableFuture.supplyAsync(() -> backupService.createCollectionsBackup(project));
 
         try {
-            CompletableFuture.allOf(saveEntitiesTask, backupOwlBinaryTask, dumpMongoTask, createCollectionsBackupTask).join();
+            CompletableFuture.allOf(backupOwlBinaryTask, dumpMongoTask, createCollectionsBackupTask).join();
 
-            List<IRI> updatedIris = saveEntitiesTask.join();
+
             String pathToOwlBinary = backupOwlBinaryTask.join();
             MongoCollectionsTempFiles mongoCollectionsTempFiles = createCollectionsBackupTask.join();
 
@@ -64,9 +63,13 @@ public class VersioningCommandsController {
 
             mongoCollectionsTempFiles.clearTempFiles();
 
+            CompletableFuture<List<IRI>> saveEntitiesTask = CompletableFuture.supplyAsync(() -> service.saveEntitiesSinceLastBackupDate(project));
+            List<IRI> updatedIris = saveEntitiesTask.join();
+
             return ResponseEntity.ok(updatedIris);
 
         } catch (Exception e) {
+            //Add email service to signal backup didn't happen
             throw new RuntimeException("Error during backup", e);
         }
     }

@@ -1,0 +1,69 @@
+server:
+  port: 7722
+  servlet.context-path: /icat/
+
+
+springdoc:
+  swagger-ui:
+    operations-sorter: alpha
+    tags-sorter: alpha
+logging:
+  level:
+    org.springframework.data.mongodb: DEBUG
+    org.mongodb.driver: DEBUG
+
+
+spring:
+  application:
+    name: icatx-versioning-service
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+    publisher-confirm-type: correlated
+    publisher-returns: true
+  data:
+    mongodb:
+      host: localhost
+      port: 27017
+      database: webprotege
+      auto-index-creation: true
+      uri: mongodb://${spring.data.mongodb.host}:${spring.data.mongodb.port}/${spring.data.mongodb.database}
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://webprotege-local.edu/auth/webprotege # The issuer URL of your Keycloak realm
+          jwk-set-uri: http://webprotege-local.edu/auth/realms/webprotege/protocol/openid-connect/certs # Optional, but speeds up token validation
+
+webprotege:
+  rabbitmq:
+    requestqueue: icatx-versioning-service-queue
+    responsequeue: icatx-versioning-service-response-queue
+    timeout: 120000
+  allowedOrigin: webprotege-local.edu
+  versioning:
+    location: /srv/versioning/
+
+  minio:
+    accessKey: webprotege
+    endPoint: http://webprotege-local.edu:9000
+    secretKey: webprotege
+    uploads-bucket-name: webprotege-uploads
+    versioning-bucket-name: webprotege-uploads
+
+  directories:
+    backup: /webprotege/backup
+
+spring.security.oauth2:
+  client:
+    registration.keycloak:
+      client-id: webprotege
+      authorization-grant-type: authorization_code
+      scope: openid
+    provider.keycloak:
+      issuer-uri: http://webprotege-local.edu/auth/realms/webprotege
+      user-name-attribute: preferred_username
+  resourceserver.jwt.issuer-uri: http://webprotege-local.edu/auth/realms/webprotege

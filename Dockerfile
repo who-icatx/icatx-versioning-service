@@ -14,7 +14,15 @@ WORKDIR /app
 
 # Copy Python dependencies
 COPY src/main/resources/requirements.txt /app/requirements.txt
-RUN pip install --no-cache-dir -r /app/requirements.txt
+
+# Upgrade pip and install dependencies
+RUN python -m pip install --upgrade pip && \
+    pip install --no-cache-dir -r /app/requirements.txt && \
+    pip show pymongo || echo "pymongo installation failed"
+
+# Debug: Verify installation
+RUN python -c "import pymongo; print('pymongo installed successfully')"
+
 
 # Copy Python script
 COPY src/main/resources/import-backup-collections.py /app/import-backup-collections.py
@@ -33,9 +41,7 @@ RUN apt-get update && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Copy MongoDB tools from the python-base stage
-COPY --from=python-base /usr/bin/mongoimport /usr/bin/mongoimport
-COPY --from=python-base /usr/bin/mongorestore /usr/bin/mongorestore
-COPY --from=python-base /usr/bin/mongoexport /usr/bin/mongoexport
+COPY --from=python-base /usr/bin/mongo* /usr/bin/
 
 # Set working directory for the combined container
 WORKDIR /app
@@ -47,8 +53,16 @@ EXPOSE 8886
 ARG JAR_FILE
 COPY target/${JAR_FILE} /app/icatx-versioning-service.jar
 
-# Copy Python setup and scripts from the Python build stage
+# Copy Python setup and scripts
 COPY --from=python-base /app /app
+
+# Install Python dependencies in the final stage
+RUN pip install --no-cache-dir -r /app/requirements.txt && \
+    pip show pymongo || echo "pymongo installation failed"
+
+# Debugging: Check pymongo and mongodump availability
+RUN python -c "import pymongo; print('pymongo installed successfully')" && \
+    which mongodump || echo "mongodump not found"
 
 # Default entry point for the container
 ENTRYPOINT ["java", "-jar", "/app/icatx-versioning-service.jar"]
