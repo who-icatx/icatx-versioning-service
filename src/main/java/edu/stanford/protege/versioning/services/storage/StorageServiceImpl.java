@@ -146,12 +146,12 @@ public class StorageServiceImpl implements StorageService {
     public Path combineFilesIntoArchive(MongoCollectionsTempFiles mongoCollections, String owlBinaryFile, ProjectId projectId, Path outputPath) {
         try {
             Path owlBinaryPath = Paths.get(owlBinaryFile);
-            Path targetOwlBinaryPath = mongoCollections.getBaseDirectory().resolve(owlBinaryPath.getFileName());
+            Path targetOwlBinaryPath = mongoCollections.baseDirectory().resolve(owlBinaryPath.getFileName());
             Files.copy(owlBinaryPath, targetOwlBinaryPath, StandardCopyOption.REPLACE_EXISTING);
             logger.info("Added owlBinary file to the temporary directory: {}", targetOwlBinaryPath);
 
             Path finalArchivePath = Paths.get(outputPath.toString(), String.format("%s-backup.zip", System.currentTimeMillis()));
-            zipDirectory(mongoCollections.getBaseDirectory(), finalArchivePath);
+            zipDirectory(mongoCollections.baseDirectory(), finalArchivePath);
             logger.info("Final archive created at: {}", finalArchivePath);
 
             return finalArchivePath;
