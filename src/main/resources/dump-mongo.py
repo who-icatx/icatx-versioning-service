@@ -2,6 +2,7 @@ import subprocess
 import time
 import sys
 import os
+import datetime
 
 def dump_mongodb_to_file(db_host, db_name, output_path, output_file):
     try:
@@ -18,15 +19,15 @@ def dump_mongodb_to_file(db_host, db_name, output_path, output_file):
 
         subprocess.run(
             [
-                "mongodump", 
+                "mongodump",
                 "--uri", db_host,
-                "--db", db_name, 
+                "--db", db_name,
                 "--archive=" + full_output_file,
                 "--gzip"
             ],
             check=True
         )
-        
+
         end_time = time.time()  # End the timer
         elapsed_time = end_time - start_time  # Calculate elapsed time
 
@@ -42,9 +43,15 @@ if __name__ == "__main__":
         print("Usage: python dumpMongo.py <db_host> <db_name> <output_path>")
         sys.exit(1)
 
+    # Get current UTC time
+    current_time_utc = datetime.datetime.now(datetime.UTC)
+
+    # Format the time as "yyyy-MM-dd'T'HH-mm-ss"
+    formatted_time = current_time_utc.strftime("%Y-%m-%dT%H-%M-%S")
+
     db_host = sys.argv[1]
     db_name = sys.argv[2]
     output_path = sys.argv[3]
-    output_file_name = f"{int(time.time())}_{db_name}_dump.archive"
+    output_file_name = f"{formatted_time}_{db_name}_dump.archive"
 
     dump_mongodb_to_file(db_host, db_name, output_path, output_file_name)

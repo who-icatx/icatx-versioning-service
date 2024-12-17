@@ -30,6 +30,9 @@ public class VersioningCommandsController {
     @Autowired
     private StorageService storageService;
 
+    @Autowired
+    private ProjectBackupDirectoryProvider backupDirectoryProvider;
+
     @PostMapping(value = {"/{projectId}/initial-files"})
     public ResponseEntity<List<IRI>> createInitialFiles(@PathVariable String projectId) throws ExecutionException, InterruptedException {
         List<IRI> savedIris = service.saveInitialOntologyInfo(ProjectId.valueOf(projectId));
@@ -45,9 +48,8 @@ public class VersioningCommandsController {
     @PostMapping(value = {"/{projectId}/create-backup"})
     public ResponseEntity<List<IRI>> createBackup(@PathVariable String projectId) {
         ProjectId project = ProjectId.valueOf(projectId);
-        ProjectBackupDirectoryProvider backupDirectoryProvider = new ProjectBackupDirectoryProvider(project);
 
-        CompletableFuture<String> backupOwlBinaryTask = CompletableFuture.supplyAsync(() -> service.makeBackupForOwlBinaryFile(project));
+        CompletableFuture<String> backupOwlBinaryTask = service.makeBackupForOwlBinaryFile(project);
         CompletableFuture<Void> dumpMongoTask = CompletableFuture.runAsync(() -> backupService.dumpMongoDb());
         CompletableFuture<MongoCollectionsTempFiles> createCollectionsBackupTask = CompletableFuture.supplyAsync(() -> backupService.createCollectionsBackup(project));
 
@@ -58,15 +60,15 @@ public class VersioningCommandsController {
             String pathToOwlBinary = backupOwlBinaryTask.join();
             MongoCollectionsTempFiles mongoCollectionsTempFiles = createCollectionsBackupTask.join();
 
+            List<IRI> saveEntitiesTask = service.saveEntitiesSinceLastBackupDate(project);
+
             // Add owlBinary to the MongoDB collections archive
-            Path finalBackupFilesArchive = storageService.combineFilesIntoArchive(mongoCollectionsTempFiles, pathToOwlBinary, project, backupDirectoryProvider.get().toPath());
+            Path finalBackupFilesArchive = storageService.combineFilesIntoArchive(mongoCollectionsTempFiles, pathToOwlBinary, project, backupDirectoryProvider.get(project));
 
             mongoCollectionsTempFiles.clearTempFiles();
 
-            CompletableFuture<List<IRI>> saveEntitiesTask = CompletableFuture.supplyAsync(() -> service.saveEntitiesSinceLastBackupDate(project));
-            List<IRI> updatedIris = saveEntitiesTask.join();
 
-            return ResponseEntity.ok(updatedIris);
+            return ResponseEntity.ok(saveEntitiesTask);
 
         } catch (Exception e) {
             //Add email service to signal backup didn't happen

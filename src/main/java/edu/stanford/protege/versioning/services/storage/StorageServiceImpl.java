@@ -13,6 +13,8 @@ import org.springframework.stereotype.Service;
 import java.io.*;
 import java.nio.file.*;
 import java.security.*;
+import java.time.*;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Stream;
 import java.util.zip.*;
@@ -145,12 +147,15 @@ public class StorageServiceImpl implements StorageService {
 
     public Path combineFilesIntoArchive(MongoCollectionsTempFiles mongoCollections, String owlBinaryFile, ProjectId projectId, Path outputPath) {
         try {
+            ZonedDateTime now = ZonedDateTime.now(ZoneOffset.UTC);
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH-mm-ss");
             Path owlBinaryPath = Paths.get(owlBinaryFile);
             Path targetOwlBinaryPath = mongoCollections.baseDirectory().resolve(owlBinaryPath.getFileName());
             Files.copy(owlBinaryPath, targetOwlBinaryPath, StandardCopyOption.REPLACE_EXISTING);
             logger.info("Added owlBinary file to the temporary directory: {}", targetOwlBinaryPath);
+            cleanUpFiles(owlBinaryPath);
 
-            Path finalArchivePath = Paths.get(outputPath.toString(), String.format("%s-backup.zip", System.currentTimeMillis()));
+            Path finalArchivePath = Paths.get(outputPath.toString(), String.format("%s-backup.zip", now.format(formatter)));
             zipDirectory(mongoCollections.baseDirectory(), finalArchivePath);
             logger.info("Final archive created at: {}", finalArchivePath);
 

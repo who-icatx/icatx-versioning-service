@@ -19,12 +19,13 @@ import edu.stanford.protege.webprotege.ipc.CommandExecutor;
 import org.semanticweb.owlapi.model.IRI;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.*;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.*;
 
 @Service
 public class OwlClassesService {
@@ -122,9 +123,11 @@ public class OwlClassesService {
         return response;
     }
 
-    public String makeBackupForOwlBinaryFile(ProjectId projectId) {
+    @Async
+    public CompletableFuture<String> makeBackupForOwlBinaryFile(ProjectId projectId) {
         try {
-            return createBackupOwlFileExecutor.execute(CreateBackupOwlFileRequest.create(projectId), SecurityContextHelper.getExecutionContext()).get().owlFileBackupLocation();
+            return createBackupOwlFileExecutor.execute(CreateBackupOwlFileRequest.create(projectId), SecurityContextHelper.getExecutionContext())
+                    .thenApply(CreateBackupOwlFileResponse::owlFileBackupLocation);
         } catch (Exception e) {
             LOGGER.error("Error creating backup for owl file for projectId:"+projectId, e);
             throw new ApplicationException("Error creating backup for owl file for projectId:"+projectId);
