@@ -17,6 +17,7 @@ def dump_mongodb_to_file(db_host, db_name, output_path, output_file):
         # Construct the full path for the output file
         full_output_file = os.path.join(output_path, output_file)
 
+        # Execute the mongodump command
         subprocess.run(
             [
                 "mongodump",
@@ -35,16 +36,17 @@ def dump_mongodb_to_file(db_host, db_name, output_path, output_file):
         print(f"Dump completed in {elapsed_time:.2f} seconds.")
     except subprocess.CalledProcessError as e:
         print(f"Error during dump: {e}")
+    except Exception as e:
+        print(f"Unexpected error during dump: {e}")
 
 # Example usage
-
 if __name__ == "__main__":
     if len(sys.argv) != 4:
         print("Usage: python dumpMongo.py <db_host> <db_name> <output_path>")
         sys.exit(1)
 
     # Get current UTC time
-    current_time_utc = datetime.datetime.now(datetime.UTC)
+    current_time_utc = datetime.datetime.now(datetime.timezone.utc)
 
     # Format the time as "yyyy-MM-dd'T'HH-mm-ss"
     formatted_time = current_time_utc.strftime("%Y-%m-%dT%H-%M-%S")

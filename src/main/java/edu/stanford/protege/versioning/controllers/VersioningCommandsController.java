@@ -3,8 +3,9 @@ package edu.stanford.protege.versioning.controllers;
 
 import edu.stanford.protege.versioning.dtos.MongoCollectionsTempFiles;
 import edu.stanford.protege.versioning.owl.OwlClassesService;
-import edu.stanford.protege.versioning.services.ProjectBackupDirectoryProvider;
+import edu.stanford.protege.versioning.services.*;
 import edu.stanford.protege.versioning.services.backupProcessor.BackupFilesProcessor;
+import edu.stanford.protege.versioning.services.git.GitService;
 import edu.stanford.protege.versioning.services.storage.StorageService;
 import edu.stanford.protege.webprotege.common.ProjectId;
 import org.semanticweb.owlapi.model.IRI;
@@ -33,6 +34,12 @@ public class VersioningCommandsController {
     @Autowired
     private ProjectBackupDirectoryProvider backupDirectoryProvider;
 
+    @Autowired
+    private ProjectVersioningDirectoryProvider versioningDirectoryProvider;
+
+    @Autowired
+    private GitService gitService;
+
     @PostMapping(value = {"/{projectId}/initial-files"})
     public ResponseEntity<List<IRI>> createInitialFiles(@PathVariable String projectId) throws ExecutionException, InterruptedException {
         List<IRI> savedIris = service.saveInitialOntologyInfo(ProjectId.valueOf(projectId));
@@ -50,17 +57,20 @@ public class VersioningCommandsController {
         ProjectId project = ProjectId.valueOf(projectId);
 
         CompletableFuture<String> backupOwlBinaryTask = service.makeBackupForOwlBinaryFile(project);
-        CompletableFuture<Void> dumpMongoTask = CompletableFuture.runAsync(() -> backupService.dumpMongoDb());
-        CompletableFuture<MongoCollectionsTempFiles> createCollectionsBackupTask = CompletableFuture.supplyAsync(() -> backupService.createCollectionsBackup(project));
+        CompletableFuture<MongoCollectionsTempFiles> collectionsBackupTask = CompletableFuture.runAsync(() -> backupService.dumpMongoDb())
+                .thenApply(result -> backupService.createCollectionsBackup(project));
 
         try {
-            CompletableFuture.allOf(backupOwlBinaryTask, dumpMongoTask, createCollectionsBackupTask).join();
-
-
+            CompletableFuture.allOf(backupOwlBinaryTask, collectionsBackupTask).join();
             String pathToOwlBinary = backupOwlBinaryTask.join();
-            MongoCollectionsTempFiles mongoCollectionsTempFiles = createCollectionsBackupTask.join();
+            MongoCollectionsTempFiles mongoCollectionsTempFiles = collectionsBackupTask.join();
 
-            List<IRI> saveEntitiesTask = service.saveEntitiesSinceLastBackupDate(project);
+//            List<IRI> saveEntitiesTask = service.saveEntitiesSinceLastBackupDate(project);
+
+//            String commitMessage = String.join(", ", saveEntitiesTask.stream().map(IRI::toString).toList());
+
+            // Perform Git operations
+//            gitService.commitAndPushChanges(commitMessage, versioningDirectoryProvider.get(project).toString());
 
             // Add owlBinary to the MongoDB collections archive
             Path finalBackupFilesArchive = storageService.combineFilesIntoArchive(mongoCollectionsTempFiles, pathToOwlBinary, project, backupDirectoryProvider.get(project));
@@ -68,7 +78,8 @@ public class VersioningCommandsController {
             mongoCollectionsTempFiles.clearTempFiles();
 
 
-            return ResponseEntity.ok(saveEntitiesTask);
+//            return ResponseEntity.ok(saveEntitiesTask);
+            return ResponseEntity.ok(List.of());
 
         } catch (Exception e) {
             //Add email service to signal backup didn't happen

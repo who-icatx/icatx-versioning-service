@@ -1,18 +1,14 @@
 package edu.stanford.protege.versioning.files;
 
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.*;
 import edu.stanford.protege.webprotege.common.ProjectId;
 import org.semanticweb.owlapi.model.IRI;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.slf4j.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.List;
+import java.io.*;
 
 @Service
 public class FileService {
@@ -86,6 +82,20 @@ public class FileService {
         } catch (IOException e) {
             LOGGER.error("Error writing JSON to file: " + file.getAbsolutePath(), e);
             throw new RuntimeException("Error writing JSON to file: " + file.getAbsolutePath());
+        }
+    }
+
+
+    public void createSmallFilesDirectory(ProjectId projectId) {
+        File directory = new File(versioningLocation + projectId.id());
+
+        // Create the directory if it does not exist
+        if (!directory.exists()) {
+            if (directory.mkdirs()) {
+                System.out.println("Directory created: " + directory.getAbsolutePath());
+            } else {
+                throw new RuntimeException("Error creating directory" + directory.getAbsolutePath());
+            }
         }
     }
 }

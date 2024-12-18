@@ -79,7 +79,7 @@ public class PythonServiceImpl implements PythonService {
                     MONGODB_DUMP_SCRIPT,
                     mongoUri,
                     dbName,
-                    backupDirectory
+                    archiveName
             );
 
             processBuilder.redirectErrorStream(true);
