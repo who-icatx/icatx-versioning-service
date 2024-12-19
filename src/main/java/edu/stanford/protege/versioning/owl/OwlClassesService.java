@@ -92,7 +92,7 @@ public class OwlClassesService {
             if(reproducibleProject == null) {
                 throw new ApplicationException("Project id not found " + projectId);
             }
-            ChangedEntities changedEntities = changedEntitiesExecutor.execute(new GetChangedEntitiesRequest(projectId, Timestamp.from(Instant.ofEpochMilli(reproducibleProject.getLastBackupTimestamp()))), SecurityContextHelper.getExecutionContext())
+            ChangedEntities changedEntities = changedEntitiesExecutor.execute(new GetChangedEntitiesRequest(projectId, reproducibleProject.getLastBackupTimestamp()), SecurityContextHelper.getExecutionContext())
                     .get()
                     .changedEntities();
 

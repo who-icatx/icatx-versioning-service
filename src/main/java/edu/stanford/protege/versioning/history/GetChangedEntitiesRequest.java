@@ -10,7 +10,7 @@ import java.sql.Timestamp;
 @JsonTypeName(GetChangedEntitiesRequest.CHANNEL)
 public record GetChangedEntitiesRequest(
         @JsonProperty("projectId") ProjectId projectId,
-        @JsonProperty("timestamp") Timestamp timestamp
+        @JsonProperty("timestamp") long timestamp
 ) implements Request<GetChangedEntitiesResponse> {
 
     public static final String CHANNEL = "webprotege.history.GetChangedEntities";
@@ -21,7 +21,7 @@ public record GetChangedEntitiesRequest(
     }
 
     public static GetChangedEntitiesRequest create(ProjectId projectId,
-                                                   Timestamp timestamp) {
+                                                   long timestamp) {
         return new GetChangedEntitiesRequest(projectId, timestamp);
     }
 }
