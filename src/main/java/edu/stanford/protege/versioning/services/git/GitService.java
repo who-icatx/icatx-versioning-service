@@ -1,46 +1,48 @@
 package edu.stanford.protege.versioning.services.git;
 
-import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 import org.slf4j.*;
+import org.springframework.stereotype.Service;
 
-import java.io.File;
+import java.io.*;
 
+@Service
 public class GitService {
 
     private static final Logger logger = LoggerFactory.getLogger(GitService.class);
 
-    private final String remoteRepositoryUrl;
-    private final String gitUsername;
-    private final String gitPassword;
+    private static final String COMMIT_BACKUP_SCRIPT = "/app/commitBackup.sh";
 
-    public GitService(String remoteRepositoryUrl,
-                      String gitUsername,
-                      String gitPassword) {
-        this.remoteRepositoryUrl = remoteRepositoryUrl;
-        this.gitUsername = gitUsername;
-        this.gitPassword = gitPassword;
-    }
+    public void commitAndPushChanges(String repoPath, String archivePath, String commitMessage ) {
+        try {
+            ProcessBuilder processBuilder = new ProcessBuilder(
+                    COMMIT_BACKUP_SCRIPT,
+                    repoPath,
+                    archivePath,
+                    commitMessage
+            );
 
-    public void commitAndPushChanges(String commitMessage, String repositoryPath) {
-        try (Git git = Git.open(new File(repositoryPath))) {
+            // Redirect error stream
+            processBuilder.redirectErrorStream(true);
 
-            git.add().addFilepattern(".").call();
-            logger.info("All changes added to Git staging area.");
+            // Start the process
+            Process process = processBuilder.start();
 
-            git.commit().setMessage(commitMessage).call();
-            logger.info("Changes committed with message: {}", commitMessage);
+            // Read the script output
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(process.getInputStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    System.out.println("[SCRIPT OUTPUT] " + line);
+                }
+            }
 
-            git.push()
-                    .setCredentialsProvider(new UsernamePasswordCredentialsProvider(gitUsername, gitPassword))
-                    .setRemote(remoteRepositoryUrl)
-                    .call();
-            logger.info("Changes pushed to remote repository: {}", remoteRepositoryUrl);
-
-        } catch (GitAPIException | java.io.IOException e) {
-            logger.error("Git operation failed", e);
-            throw new RuntimeException("Failed to perform Git operations", e);
+            int exitCode = process.waitFor();
+            if (exitCode != 0) {
+                throw new RuntimeException("Script exited with non-zero code: " + exitCode);
+            }
+            System.out.println("Script executed successfully!");
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to run script", e);
         }
     }
 }

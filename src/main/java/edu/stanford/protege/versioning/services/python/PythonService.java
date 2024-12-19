@@ -1,6 +1,6 @@
 package edu.stanford.protege.versioning.services.python;
 
-import edu.stanford.protege.versioning.dtos.MongoCollectionsTempFiles;
+import edu.stanford.protege.versioning.dtos.RegularTempFile;
 import edu.stanford.protege.webprotege.common.ProjectId;
 
 import java.nio.file.Path;
@@ -10,5 +10,5 @@ public interface PythonService {
 
     void createMongoDump();
 
-    MongoCollectionsTempFiles createCollectionsBackup(ProjectId projectId);
+    RegularTempFile createCollectionsBackup(ProjectId projectId);
 }

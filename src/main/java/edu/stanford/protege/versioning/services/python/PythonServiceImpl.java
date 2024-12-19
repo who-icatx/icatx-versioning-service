@@ -1,6 +1,6 @@
 package edu.stanford.protege.versioning.services.python;
 
-import edu.stanford.protege.versioning.dtos.MongoCollectionsTempFiles;
+import edu.stanford.protege.versioning.dtos.RegularTempFile;
 import edu.stanford.protege.webprotege.common.ProjectId;
 import org.slf4j.*;
 import org.springframework.beans.factory.annotation.Value;
@@ -109,7 +109,7 @@ public class PythonServiceImpl implements PythonService {
     }
 
     @Override
-    public MongoCollectionsTempFiles createCollectionsBackup(ProjectId projectId) {
+    public RegularTempFile createCollectionsBackup(ProjectId projectId) {
         try {
             String currentDate = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
             String outputPath = String.format("%s/%s/%s/%s", backupDirectory, projectId.id(), currentDate,"collections");
@@ -142,7 +142,7 @@ public class PythonServiceImpl implements PythonService {
             }
 
             logger.info("Collections backup for project {} created successfully at {}", projectId.id(), outputPath);
-            return new MongoCollectionsTempFiles(Paths.get(outputPath));
+            return new RegularTempFile(Paths.get(outputPath));
 
         } catch (IOException | InterruptedException e) {
             String message = "Failed to create collections backup";

@@ -19,7 +19,9 @@ public interface StorageService {
 
     BlobLocation uploadFileToMinio(Path fileToStore) throws IOException;
 
-    Path combineFilesIntoArchive(MongoCollectionsTempFiles mongoCollections, String owlBinaryFile, ProjectId projectId, Path outputPath);
+    Path combineFilesIntoArchive(Path outputPath, RegularTempFile... regularTempFiles);
 
     void zipDirectory(Path sourceDir, Path archivePath) throws IOException;
+
+    RegularTempFile createFile(Path directory, String fileName) throws IOException;
 }

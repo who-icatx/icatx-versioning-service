@@ -9,5 +9,5 @@ public interface BackupFilesProcessor {
 
     void dumpMongoDb();
 
-    MongoCollectionsTempFiles createCollectionsBackup(ProjectId projectId);
+    RegularTempFile createCollectionsBackup(ProjectId projectId);
 }

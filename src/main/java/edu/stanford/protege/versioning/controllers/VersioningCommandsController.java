@@ -1,7 +1,7 @@
 package edu.stanford.protege.versioning.controllers;
 
 
-import edu.stanford.protege.versioning.dtos.MongoCollectionsTempFiles;
+import edu.stanford.protege.versioning.dtos.RegularTempFile;
 import edu.stanford.protege.versioning.owl.OwlClassesService;
 import edu.stanford.protege.versioning.services.*;
 import edu.stanford.protege.versioning.services.backupProcessor.BackupFilesProcessor;
@@ -57,29 +57,29 @@ public class VersioningCommandsController {
         ProjectId project = ProjectId.valueOf(projectId);
 
         CompletableFuture<String> backupOwlBinaryTask = service.makeBackupForOwlBinaryFile(project);
-        CompletableFuture<MongoCollectionsTempFiles> collectionsBackupTask = CompletableFuture.runAsync(() -> backupService.dumpMongoDb())
+        CompletableFuture<RegularTempFile> collectionsBackupTask = CompletableFuture.runAsync(() -> backupService.dumpMongoDb())
                 .thenApply(result -> backupService.createCollectionsBackup(project));
 
         try {
             CompletableFuture.allOf(backupOwlBinaryTask, collectionsBackupTask).join();
-            String pathToOwlBinary = backupOwlBinaryTask.join();
-            MongoCollectionsTempFiles mongoCollectionsTempFiles = collectionsBackupTask.join();
-
-//            List<IRI> saveEntitiesTask = service.saveEntitiesSinceLastBackupDate(project);
-
-//            String commitMessage = String.join(", ", saveEntitiesTask.stream().map(IRI::toString).toList());
-
-            // Perform Git operations
-//            gitService.commitAndPushChanges(commitMessage, versioningDirectoryProvider.get(project).toString());
-
-            // Add owlBinary to the MongoDB collections archive
-            Path finalBackupFilesArchive = storageService.combineFilesIntoArchive(mongoCollectionsTempFiles, pathToOwlBinary, project, backupDirectoryProvider.get(project));
-
-            mongoCollectionsTempFiles.clearTempFiles();
+            RegularTempFile owlBinary = RegularTempFile.create(backupOwlBinaryTask.join());
+            RegularTempFile mongoCollections = collectionsBackupTask.join();
 
 
-//            return ResponseEntity.ok(saveEntitiesTask);
-            return ResponseEntity.ok(List.of());
+            List<IRI> saveEntitiesTask = service.saveEntitiesSinceLastBackupDate(project);
+
+            String commitMessage = String.join(", ", saveEntitiesTask.stream().map(IRI::toString).toList());
+
+            Path finalBackupFilesArchive = storageService.combineFilesIntoArchive(backupDirectoryProvider.get(project), mongoCollections, owlBinary);
+
+
+            gitService.commitAndPushChanges(versioningDirectoryProvider.get(project).toAbsolutePath().toString(), finalBackupFilesArchive.toAbsolutePath().toString(), commitMessage);
+
+
+            mongoCollections.clearTempFiles();
+
+
+            return ResponseEntity.ok(saveEntitiesTask);
 
         } catch (Exception e) {
             //Add email service to signal backup didn't happen

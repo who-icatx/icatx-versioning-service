@@ -145,20 +145,27 @@ public class StorageServiceImpl implements StorageService {
         return "versioning-" + UUID.randomUUID();
     }
 
-    public Path combineFilesIntoArchive(MongoCollectionsTempFiles mongoCollections, String owlBinaryFile, ProjectId projectId, Path outputPath) {
+    public Path combineFilesIntoArchive(Path outputPath, RegularTempFile... regularTempFiles) {
         try {
             ZonedDateTime now = ZonedDateTime.now(ZoneOffset.UTC);
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH-mm-ss");
-            Path owlBinaryPath = Paths.get(owlBinaryFile);
-            Path targetOwlBinaryPath = mongoCollections.baseDirectory().resolve(owlBinaryPath.getFileName());
-            Files.copy(owlBinaryPath, targetOwlBinaryPath, StandardCopyOption.REPLACE_EXISTING);
-            logger.info("Added owlBinary file to the temporary directory: {}", targetOwlBinaryPath);
-            cleanUpFiles(owlBinaryPath);
+            RegularTempFile firstFile = regularTempFiles[0];
+            for(int i = 1; i<regularTempFiles.length; i++){
+                if(firstFile.baseDirectory().equals(regularTempFiles[i].baseDirectory())){
+                    continue;
+                }
+                Path fileSource = regularTempFiles[i].baseDirectory();
+                Path fileDestination = firstFile.baseDirectory().resolve(fileSource.getFileName());
+                Files.copy(fileSource, fileDestination, StandardCopyOption.REPLACE_EXISTING);
+                regularTempFiles[i].clearTempFiles();
+            }
 
             Path finalArchivePath = Paths.get(outputPath.toString(), String.format("%s-backup.zip", now.format(formatter)));
-            zipDirectory(mongoCollections.baseDirectory(), finalArchivePath);
+            zipDirectory(firstFile.baseDirectory(), finalArchivePath);
             logger.info("Final archive created at: {}", finalArchivePath);
-
+            if(!firstFile.baseDirectory().equals(outputPath)){
+                firstFile.clearTempFiles();
+            }
             return finalArchivePath;
 
         } catch (IOException e) {
@@ -184,5 +191,10 @@ public class StorageServiceImpl implements StorageService {
                 }
             });
         }
+    }
+
+    @Override
+    public RegularTempFile createFile(Path directory, String fileName) throws IOException {
+        return RegularTempFile.create(Files.createFile(directory.resolve(fileName)));
     }
 }

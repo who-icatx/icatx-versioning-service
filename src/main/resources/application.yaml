@@ -67,9 +67,3 @@ spring.security.oauth2:
       issuer-uri: http://webprotege-local.edu/auth/realms/webprotege
       user-name-attribute: preferred_username
   resourceserver.jwt.issuer-uri: http://webprotege-local.edu/auth/realms/webprotege
-
-git:
-  remote:
-    url: https://github.com/who-icatx/whofic-ontology-files.git
-  username: soimugeoWB
-  password:

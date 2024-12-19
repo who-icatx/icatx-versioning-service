@@ -2,6 +2,8 @@ package edu.stanford.protege.versioning.services.backupProcessor;
 
 import edu.stanford.protege.versioning.BackupFileProcessingException;
 import edu.stanford.protege.versioning.dtos.*;
+import edu.stanford.protege.versioning.services.*;
+import edu.stanford.protege.versioning.services.git.GitService;
 import edu.stanford.protege.versioning.services.python.PythonService;
 import edu.stanford.protege.versioning.services.storage.StorageService;
 import edu.stanford.protege.webprotege.common.*;
@@ -15,15 +17,27 @@ public class BackupFilesProcessorImpl implements BackupFilesProcessor {
 
     private static final Logger logger = LoggerFactory.getLogger(BackupFilesProcessorImpl.class);
 
+    private ProjectBackupDirectoryProvider backupDirectoryProvider;
+
+    private ProjectVersioningDirectoryProvider versioningDirectoryProvider;
+
 
     private final PythonService pythonService;
     private final StorageService storageService;
 
+    private GitService gitService;
 
-    public BackupFilesProcessorImpl(PythonService pythonService,
-                                    StorageService storageService) {
+
+    public BackupFilesProcessorImpl(ProjectBackupDirectoryProvider backupDirectoryProvider,
+                                    ProjectVersioningDirectoryProvider versioningDirectoryProvider,
+                                    PythonService pythonService,
+                                    StorageService storageService,
+                                    GitService gitService) {
+        this.backupDirectoryProvider = backupDirectoryProvider;
+        this.versioningDirectoryProvider = versioningDirectoryProvider;
         this.pythonService = pythonService;
         this.storageService = storageService;
+        this.gitService = gitService;
     }
 
     @Override
@@ -56,7 +70,7 @@ public class BackupFilesProcessorImpl implements BackupFilesProcessor {
     }
 
     @Override
-    public MongoCollectionsTempFiles createCollectionsBackup(ProjectId projectId) {
-       return pythonService.createCollectionsBackup(projectId);
+    public RegularTempFile createCollectionsBackup(ProjectId projectId) {
+        return pythonService.createCollectionsBackup(projectId);
     }
 }
