@@ -67,3 +67,17 @@ spring.security.oauth2:
       issuer-uri: http://webprotege-local.edu/auth/realms/webprotege
       user-name-attribute: preferred_username
   resourceserver.jwt.issuer-uri: http://webprotege-local.edu/auth/realms/webprotege
+
+
+mail:
+  from:
+    email: no-reply@sandbox331c6a2642cd4d8b83206859a546b672.mailgun.org
+    name: iCatx emailing service
+  destination-override: geo.soimu@whitebox.tech
+  notification-default-signature: iCatx emailing service
+  notification-mass-target:
+  mailgun:
+    base-url: https://api.mailgun.net/
+    api-key: 97d0c0ceadb8c892f36db94b0d1b5ae2-0920befd-7e641ab1
+    domain: sandbox331c6a2642cd4d8b83206859a546b672.mailgun.org
+    send-emails: true

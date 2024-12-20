@@ -1,74 +1,36 @@
-# Stage for Python dependencies and MongoDB tools
-FROM python:3.10-slim as python-base
-
-
-# Install MongoDB tools, Python dependencies, and necessary utilities
-RUN apt-get update && \
-    apt-get install -y iputils-ping wget gnupg && \
-    wget -qO - https://www.mongodb.org/static/pgp/server-6.0.asc | apt-key add - && \
-    echo "deb [ arch=amd64 ] https://repo.mongodb.org/apt/debian bullseye/mongodb-org/6.0 main" | tee /etc/apt/sources.list.d/mongodb-org-6.0.list && \
-    apt-get update && apt-get install -y mongodb-database-tools && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
-
-# Set up working directory for Python
-WORKDIR /app
-
-# Copy Python dependencies
-COPY src/main/resources/requirements.txt /app/requirements.txt
-
-# Upgrade pip and install dependencies
-RUN python -m pip install --upgrade pip && \
-    pip install --no-cache-dir -r /app/requirements.txt && \
-    pip show pymongo || echo "pymongo installation failed"
-
-# Debug: Verify installation
-RUN python -c "import pymongo; print('pymongo installed successfully')"
-
-
-# Copy Python script
-COPY src/main/resources/import-backup-collections.py /app/import-backup-collections.py
-COPY src/main/resources/dump-project-collections.py /app/dump-project-collections.py
-COPY src/main/resources/dump-mongo.py /app/dump-mongo.py
-COPY src/main/resources/commitBackup.sh /app/commitBackup.sh
-RUN chmod +x /app/commitBackup.sh
-
-# Final combined image
-FROM python:3.10-slim
+FROM eclipse-temurin:17-jre-focal AS final
 
 LABEL MAINTAINER="protege.stanford.edu"
 
-# Install Java
+# Install required packages in one go:
+# - git for git operations
+# - zip for archiving
+# - python3.10 and pip for running Python scripts
+# - gnupg, wget for MongoDB key installation
+# - mongodb-database-tools for mongodump, mongoexport, etc.
 RUN apt-get update && \
-    apt-get install -y zip && \
-    apt-get install -y openjdk-17-jdk && \
-    apt-get install -y git && \
+    apt-get install -y --no-install-recommends git zip python3 python3-distutils python3-pip iputils-ping wget gnupg && \
+    wget -qO - https://www.mongodb.org/static/pgp/server-6.0.asc | apt-key add - && \
+    echo "deb [ arch=amd64 ] https://repo.mongodb.org/apt/debian bullseye/mongodb-org/6.0 main" > /etc/apt/sources.list.d/mongodb-org-6.0.list && \
+    apt-get update && apt-get install -y --no-install-recommends mongodb-database-tools && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Copy MongoDB tools from the python-base stage
-COPY --from=python-base /usr/bin/mongo* /usr/bin/
-
-# Set working directory for the combined container
 WORKDIR /app
 
-# Expose the application port
-EXPOSE 8886
+# Copy requirements and install Python deps
+COPY src/main/resources/requirements.txt /app/requirements.txt
+RUN python3 -m pip install --upgrade pip && \
+    pip3 install --no-cache-dir -r requirements.txt && \
+    pip3 show pymongo || echo "pymongo installation failed"
 
-# Copy application JAR from the Java build stage
-ARG JAR_FILE
-COPY target/${JAR_FILE} /app/icatx-versioning-service.jar
+# Copy Python scripts
+COPY src/main/resources/import-backup-collections.py /app/
+COPY src/main/resources/dump-project-collections.py /app/
+COPY src/main/resources/dump-mongo.py /app/
+COPY src/main/resources/commitBackup.sh /app/commitBackup.sh
+RUN chmod +x /app/commitBackup.sh
 
-# Copy Python setup and scripts
-COPY --from=python-base /app /app
-
-# Install Python dependencies in the final stage
-RUN pip install --no-cache-dir -r /app/requirements.txt && \
-    pip show pymongo || echo "pymongo installation failed"
-
-# Debugging: Check pymongo and mongodump availability
-RUN python -c "import pymongo; print('pymongo installed successfully')" && \
-    which mongodump || echo "mongodump not found"
-
-
+# Copy SSH key for Git operations
 COPY src/main/resources/id_rsa /root/.ssh/id_rsa
 RUN chmod 700 /root/.ssh && chmod 600 /root/.ssh/id_rsa
 
@@ -81,5 +43,15 @@ ENV GIT_COMMITTER_EMAIL="you@example.com"
 RUN git config --global user.name "$GIT_AUTHOR_NAME" && \
     git config --global user.email "$GIT_AUTHOR_EMAIL"
 
-# Default entry point for the container
+# Copy JAR file
+ARG JAR_FILE
+COPY target/${JAR_FILE} /app/icatx-versioning-service.jar
+
+# Expose the application port
+EXPOSE 8886
+
+# Check installations
+RUN python3 -c "import pymongo; print('pymongo installed successfully')" && \
+    which mongodump || echo "mongodump not found"
+
 ENTRYPOINT ["java", "-jar", "/app/icatx-versioning-service.jar"]
