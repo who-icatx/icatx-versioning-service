@@ -7,10 +7,6 @@ springdoc:
   swagger-ui:
     operations-sorter: alpha
     tags-sorter: alpha
-logging:
-  level:
-    org.springframework.data.mongodb: DEBUG
-    org.mongodb.driver: DEBUG
 
 
 spring:
@@ -42,7 +38,7 @@ webprotege:
   rabbitmq:
     requestqueue: icatx-versioning-service-queue
     responsequeue: icatx-versioning-service-response-queue
-    timeout: 120000
+    timeout: 320000
   allowedOrigin: webprotege-local.edu
   versioning:
     location: /srv/versioning/

@@ -96,15 +96,20 @@ public class OwlClassesService {
                 try {
                     JsonNode dto = getEntityInfo.execute(new GetProjectEntityInfoRequest(projectId, iri), SecurityContextHelper.getExecutionContext()).get().entityDto();
                     changedEntitiesInfo.put(iri, dto);
-                } catch (Exception e) {
-                    LOGGER.error("Error fetching IRI " + iri, e);
+                } catch (Throwable e) {
+                    LOGGER.info("Error fetching IRI " + iri, e);
 //                    throw new ApplicationException("Error fetching IRI " + iri, e);
                 }
             }
 
             for (IRI iri : changedEntitiesInfo.keySet()) {
-                fileService.writeEntities(iri, changedEntitiesInfo.get(iri), projectId);
-                response.add(iri);
+                try {
+                    fileService.writeEntities(iri, changedEntitiesInfo.get(iri), projectId);
+                    response.add(iri);
+                } catch (Exception e) {
+                    LOGGER.error("Error writing file for IRI " + iri, e);
+//                    throw new ApplicationException("Error writing file for IRI " + iri, e);
+                }
             }
 
             reproducibleProject.setLastBackupTimestamp(Instant.now().toEpochMilli());

@@ -62,8 +62,8 @@ public class VersioningCommandsController {
 
         try {
             CompletableFuture.allOf(backupOwlBinaryTask, collectionsBackupTask).join();
-            RegularTempFile owlBinary = RegularTempFile.create(backupOwlBinaryTask.join());
-            RegularTempFile mongoCollections = collectionsBackupTask.join();
+            RegularTempFile owlBinary = RegularTempFile.create(backupOwlBinaryTask.get());
+            RegularTempFile mongoCollections = collectionsBackupTask.get();
 
 
             List<IRI> saveEntitiesTask = service.saveEntitiesSinceLastBackupDate(project);

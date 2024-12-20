@@ -1,5 +1,5 @@
 # Stage for Python dependencies and MongoDB tools
-FROM python:3.10-slim as python-base
+FROM python:3.10-slim AS python-base
 
 
 # Install MongoDB tools, Python dependencies, and necessary utilities
@@ -69,8 +69,8 @@ RUN python -c "import pymongo; print('pymongo installed successfully')" && \
     which mongodump || echo "mongodump not found"
 
 
-COPY src/main/resources/id_rsa /root/.ssh/id_rsa
-RUN chmod 700 /root/.ssh && chmod 600 /root/.ssh/id_rsa
+#COPY src/main/resources/id_rsa /root/.ssh/id_rsa
+#RUN chmod 700 /root/.ssh && chmod 600 /root/.ssh/id_rsa
 
 # Set Git identity via environment variables
 ENV GIT_AUTHOR_NAME="Your Name"
@@ -81,5 +81,9 @@ ENV GIT_COMMITTER_EMAIL="you@example.com"
 RUN git config --global user.name "$GIT_AUTHOR_NAME" && \
     git config --global user.email "$GIT_AUTHOR_EMAIL"
 
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
 # Default entry point for the container
 ENTRYPOINT ["java", "-jar", "/app/icatx-versioning-service.jar"]
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
