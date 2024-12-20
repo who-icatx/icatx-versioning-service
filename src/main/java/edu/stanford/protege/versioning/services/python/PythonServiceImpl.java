@@ -33,7 +33,7 @@ public class PythonServiceImpl implements PythonService {
     public void importMongoCollections(ProjectId projectId, Path inputDirectory) {
         try {
             ProcessBuilder processBuilder = new ProcessBuilder(
-                    "python",
+                    "python3",
                     IMPORT_BACKUP_COLLECTIONS_SCRIPT,
                     mongoUri,
                     dbName,
@@ -75,7 +75,7 @@ public class PythonServiceImpl implements PythonService {
             String archiveName = String.format("%s/mongoDump/%s", backupDirectory, currentDate);
 
             ProcessBuilder processBuilder = new ProcessBuilder(
-                    "python",
+                    "python3",
                     MONGODB_DUMP_SCRIPT,
                     mongoUri,
                     dbName,
@@ -115,7 +115,7 @@ public class PythonServiceImpl implements PythonService {
             String outputPath = String.format("%s/%s/%s/%s", backupDirectory, projectId.id(), currentDate,"collections");
 
             ProcessBuilder processBuilder = new ProcessBuilder(
-                    "python",
+                    "python3",
                     DUMP_PROJECT_COLLECTIONS_SCRIPT,
                     mongoUri,
                     dbName,

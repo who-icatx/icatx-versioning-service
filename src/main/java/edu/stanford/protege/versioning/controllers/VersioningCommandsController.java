@@ -5,6 +5,7 @@ import edu.stanford.protege.versioning.dtos.RegularTempFile;
 import edu.stanford.protege.versioning.owl.OwlClassesService;
 import edu.stanford.protege.versioning.services.*;
 import edu.stanford.protege.versioning.services.backupProcessor.BackupFilesProcessor;
+import edu.stanford.protege.versioning.services.email.MailgunApiService;
 import edu.stanford.protege.versioning.services.git.GitService;
 import edu.stanford.protege.versioning.services.storage.StorageService;
 import edu.stanford.protege.webprotege.common.ProjectId;
@@ -39,6 +40,9 @@ public class VersioningCommandsController {
 
     @Autowired
     private GitService gitService;
+
+    @Autowired
+    private MailgunApiService mailgunApiService;
 
     @PostMapping(value = {"/{projectId}/initial-files"})
     public ResponseEntity<List<IRI>> createInitialFiles(@PathVariable String projectId) throws ExecutionException, InterruptedException {
@@ -82,7 +86,7 @@ public class VersioningCommandsController {
             return ResponseEntity.ok(saveEntitiesTask);
 
         } catch (Exception e) {
-            //Add email service to signal backup didn't happen
+            mailgunApiService.sendMail(e);
             throw new RuntimeException("Error during backup", e);
         }
     }
