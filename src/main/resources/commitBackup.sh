@@ -12,7 +12,9 @@ COMMIT_MESSAGE="$3"
 METADATA_FILE="metadata.txt"
 
 # Commit and push changes in the Git repository
+echo "Moving to directory: $REPO_PATH"
 cd "$REPO_PATH"
+git status
 git add -A
 git commit -m "$COMMIT_MESSAGE"
 current_branch=$(git branch --show-current)
