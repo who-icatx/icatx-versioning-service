@@ -23,8 +23,6 @@ def export_project_collections(mongo_uri, project_id, db_name, output_path):
     collections = db.list_collection_names()
 
     for collection_name in collections:
-        if collection_name == "EntityPostCoordinationHistory":
-            continue
 
         collection = db[collection_name]
 

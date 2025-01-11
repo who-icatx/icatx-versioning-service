@@ -14,9 +14,13 @@ METADATA_FILE="metadata.txt"
 # Commit and push changes in the Git repository
 echo "Moving to directory: $REPO_PATH"
 cd "$REPO_PATH"
-git status
 git add -A
-git commit -m "$COMMIT_MESSAGE"
+if git commit -m "$COMMIT_MESSAGE"; then
+    echo "Commit successful."
+else
+    echo "No changes to commit."
+fi
+
 current_branch=$(git branch --show-current)
 git push origin "$current_branch"
 

@@ -14,6 +14,8 @@ public class ReproducibleProject {
     @Field("lastBackup")
     private long lastBackupTimestamp;
 
+    @Field("associatedBranch")
+    private String associatedBranch;
 
     public String getId() {
         return id;
@@ -35,7 +37,16 @@ public class ReproducibleProject {
         return lastBackupTimestamp;
     }
 
+
     public void setLastBackupTimestamp(long lastBackupTimestamp) {
         this.lastBackupTimestamp = lastBackupTimestamp;
+    }
+
+    public String getAssociatedBranch() {
+        return associatedBranch;
+    }
+
+    public void setAssociatedBranch(String associatedBranch) {
+        this.associatedBranch = associatedBranch;
     }
 }

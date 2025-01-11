@@ -9,11 +9,10 @@ LABEL MAINTAINER="protege.stanford.edu"
 # - gnupg, wget for MongoDB key installation
 # - mongodb-database-tools for mongodump, mongoexport, etc.
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends git zip python3 python3-distutils python3-pip iputils-ping wget gnupg && \
+    apt-get install -y --no-install-recommends git zip python3 python3-distutils python3-pip iputils-ping wget gnupg ssh && \
     wget -qO - https://www.mongodb.org/static/pgp/server-6.0.asc | apt-key add - && \
     echo "deb [ arch=amd64 ] https://repo.mongodb.org/apt/debian bullseye/mongodb-org/6.0 main" > /etc/apt/sources.list.d/mongodb-org-6.0.list && \
     apt-get update && apt-get install -y --no-install-recommends mongodb-database-tools && \
-    apt-get install ssh && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -29,6 +28,7 @@ COPY src/main/resources/import-backup-collections.py /app/
 COPY src/main/resources/dump-project-collections.py /app/
 COPY src/main/resources/dump-mongo.py /app/
 COPY src/main/resources/commitBackup.sh /app/commitBackup.sh
+COPY src/main/resources/gitCheckout.sh /app/gitCheckout.sh
 RUN chmod +x /app/commitBackup.sh
 
 # Set Git identity via environment variables
@@ -55,5 +55,4 @@ COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
 # Default entry point for the container
-ENTRYPOINT ["java", "-jar", "/app/icatx-versioning-service.jar"]
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

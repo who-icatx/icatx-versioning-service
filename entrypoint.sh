@@ -5,7 +5,8 @@ if [ -n "$SSH_PRIVATE_KEY" ]; then
   echo "Setting up SSH key..."
 
   # Create the SSH private key file
-  echo "$SSH_PRIVATE_KEY" > /root/.ssh/id_rsa
+  mkdir /root/.ssh
+  echo -e "$SSH_PRIVATE_KEY" > /root/.ssh/id_rsa
   chmod 600 /root/.ssh/id_rsa
 
   # Add GitHub (or other host) to known_hosts to avoid host verification prompts

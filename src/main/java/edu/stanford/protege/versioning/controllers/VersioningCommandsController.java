@@ -1,10 +1,9 @@
 package edu.stanford.protege.versioning.controllers;
 
 
-import edu.stanford.protege.versioning.dtos.RegularTempFile;
 import edu.stanford.protege.versioning.owl.OwlClassesService;
+import edu.stanford.protege.versioning.repository.ReproducibleProjectsRepository;
 import edu.stanford.protege.versioning.services.*;
-import edu.stanford.protege.versioning.services.backupProcessor.BackupFilesProcessor;
 import edu.stanford.protege.versioning.services.email.MailgunApiService;
 import edu.stanford.protege.versioning.services.git.GitService;
 import edu.stanford.protege.versioning.services.storage.StorageService;
@@ -27,7 +26,7 @@ public class VersioningCommandsController {
     private OwlClassesService service;
 
     @Autowired
-    private BackupFilesProcessor backupService;
+    private ProjectBackupService backupService;
 
     @Autowired
     private StorageService storageService;
@@ -37,6 +36,9 @@ public class VersioningCommandsController {
 
     @Autowired
     private ProjectVersioningDirectoryProvider versioningDirectoryProvider;
+
+    @Autowired
+    private ReproducibleProjectsRepository reproducibleProjectsRepository;
 
     @Autowired
     private GitService gitService;
@@ -57,38 +59,9 @@ public class VersioningCommandsController {
     }
 
     @PostMapping(value = {"/{projectId}/create-backup"})
-    public ResponseEntity<List<IRI>> createBackup(@PathVariable String projectId) {
-        ProjectId project = ProjectId.valueOf(projectId);
-
-        CompletableFuture<String> backupOwlBinaryTask = service.makeBackupForOwlBinaryFile(project);
-        CompletableFuture<RegularTempFile> collectionsBackupTask = CompletableFuture.runAsync(() -> backupService.dumpMongoDb())
-                .thenApply(result -> backupService.createCollectionsBackup(project));
-
-        try {
-            CompletableFuture.allOf(backupOwlBinaryTask, collectionsBackupTask).join();
-            RegularTempFile owlBinary = RegularTempFile.create(backupOwlBinaryTask.get());
-            RegularTempFile mongoCollections = collectionsBackupTask.get();
-
-
-            List<IRI> saveEntitiesTask = service.saveEntitiesSinceLastBackupDate(project);
-
-            String commitMessage = String.join(", ", saveEntitiesTask.stream().map(IRI::toString).toList());
-
-            Path finalBackupFilesArchive = storageService.combineFilesIntoArchive(backupDirectoryProvider.get(project), mongoCollections, owlBinary);
-
-
-            gitService.commitAndPushChanges(versioningDirectoryProvider.get(project).toAbsolutePath().toString(), finalBackupFilesArchive.toAbsolutePath().toString(), commitMessage);
-
-
-            mongoCollections.clearTempFiles();
-
-
-            return ResponseEntity.ok(saveEntitiesTask);
-
-        } catch (Exception e) {
-            mailgunApiService.sendMail(e);
-            throw new RuntimeException("Error during backup", e);
-        }
+    public ResponseEntity<List<IRI>> createBackup(@PathVariable String projectId, @RequestParam String branch) {
+        var savedIris = backupService.createBackup(projectId);
+        return ResponseEntity.ok(savedIris);
     }
 
 }

@@ -42,6 +42,7 @@ webprotege:
   allowedOrigin: webprotege-local.edu
   versioning:
     location: /srv/versioning/
+    sshUrl: git@github.com:who-icatx/whofic-ontology-files.git
 
   minio:
     accessKey: webprotege
