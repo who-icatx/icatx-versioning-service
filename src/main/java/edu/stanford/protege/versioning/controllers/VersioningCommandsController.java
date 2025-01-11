@@ -59,7 +59,7 @@ public class VersioningCommandsController {
     }
 
     @PostMapping(value = {"/{projectId}/create-backup"})
-    public ResponseEntity<List<IRI>> createBackup(@PathVariable String projectId, @RequestParam String branch) {
+    public ResponseEntity<List<IRI>> createBackup(@PathVariable String projectId) {
         var savedIris = backupService.createBackup(projectId);
         return ResponseEntity.ok(savedIris);
     }
