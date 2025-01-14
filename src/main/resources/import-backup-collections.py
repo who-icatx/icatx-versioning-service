@@ -38,11 +38,9 @@ def replace_project_id_in_json(input_path, new_project_id):
                         if '_id' in document:
                             if isinstance(document['_id'], str) and is_uuid4(document['_id']):
                                 # If _id is a valid UUIDv4 string, overwrite with a new UUIDv4
-                                print(f"Overwriting valid UUIDv4 _id: {document['_id']}")
                                 document['_id'] = str(uuid.uuid4())
                             else:
                                 # If _id is not a valid UUIDv4 or is an ObjectId, remove it
-                                print(f"Removing invalid or ObjectId _id: {document['_id']}")
                                 del document['_id']
 
                         document['projectId'] = new_project_id  # Update `projectId`

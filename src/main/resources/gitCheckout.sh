@@ -19,23 +19,32 @@ fi
 echo "Moving to directory: $REPO_PATH"
 cd "$REPO_PATH"
 
-# Clone the repository
-if git clone "$SSH_URL" .; then
-    echo "Clone successful."
+# Check if the directory is already a Git repository
+if [ -d ".git" ]; then
+    echo "Git repository already exists. Checking out branch: $BRANCH"
+    git fetch origin
+    if git checkout "$BRANCH"; then
+        echo "Checked out branch $BRANCH successfully."
+    else
+        echo "Failed to checkout branch $BRANCH."
+        exit 1
+    fi
 else
-    echo "Clone failed."
-    exit 1
+    # Clone the repository
+    echo "Git repository not found. Cloning from $SSH_URL."
+    if git clone "$SSH_URL" .; then
+        if git checkout "$BRANCH"; then
+            echo "Checked out branch $BRANCH successfully."
+        else
+            echo "Failed to checkout branch $BRANCH."
+            exit 1
+        fi
+    else
+        echo "Clone failed."
+        exit 1
+    fi
 fi
 
-cd "$REPO_PATH"
-
-# Checkout the specified branch
-if git checkout "$BRANCH"; then
-    echo "Successfully checked out branch $BRANCH"
-else
-    echo "Branch checkout failed."
-    exit 1
-fi
 
 # Pull the latest changes
 if git pull; then

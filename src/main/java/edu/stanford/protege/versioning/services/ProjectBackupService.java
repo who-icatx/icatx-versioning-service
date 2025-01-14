@@ -1,5 +1,6 @@
 package edu.stanford.protege.versioning.services;
 
+import edu.stanford.protege.versioning.SecurityContextHelper;
 import edu.stanford.protege.versioning.dtos.RegularTempFile;
 import edu.stanford.protege.versioning.entity.ReproducibleProject;
 import edu.stanford.protege.versioning.owl.OwlClassesService;
@@ -9,11 +10,15 @@ import edu.stanford.protege.versioning.services.email.MailgunApiService;
 import edu.stanford.protege.versioning.services.git.GitService;
 import edu.stanford.protege.versioning.services.storage.StorageService;
 import edu.stanford.protege.webprotege.common.ProjectId;
+import edu.stanford.protege.webprotege.ipc.ExecutionContext;
 import org.semanticweb.owlapi.model.IRI;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -21,6 +26,10 @@ import java.util.concurrent.CompletableFuture;
 
 @Service
 public class ProjectBackupService {
+
+
+    private final static Logger LOGGER = LoggerFactory.getLogger(ProjectBackupService.class);
+
     @Autowired
     private OwlClassesService service;
 
@@ -48,29 +57,37 @@ public class ProjectBackupService {
 
 
     public List<IRI> createBackup(String projectId) {
+        LOGGER.info("Starting create backup flow for project " + projectId);
         ProjectId project = ProjectId.valueOf(projectId);
-
-        CompletableFuture<String> backupOwlBinaryTask = service.makeBackupForOwlBinaryFile(project);
-        CompletableFuture<RegularTempFile> collectionsBackupTask = CompletableFuture.runAsync(() -> backupFilesProcessor.dumpMongoDb())
-                .thenApply(result -> backupFilesProcessor.createCollectionsBackup(project));
-
+        List<IRI> allChangedEntities = service.getAllChangedEntitiesSinceLastBackupDate(project);
         ReproducibleProject reproducibleProject = reproducibleProjectsRepository.findByProjectId(projectId);
+
+        if(allChangedEntities.isEmpty()){
+            LOGGER.info("Project " + projectId + " has no changed entties since last backup date. Skipping backup");
+            return new ArrayList<>();
+        } else {
+            LOGGER.info("Creating backup for " + allChangedEntities.size() + " entities on projectId " + projectId);
+        }
 
         if (reproducibleProject == null) {
             throw new RuntimeException("Project not found " + projectId);
         }
 
-        CompletableFuture<Void> createGitRepo = CompletableFuture.runAsync(() -> gitService.gitCheckout(reproducibleProject.getAssociatedBranch(), "/srv/versioning/" + projectId));
-
+        gitService.gitCheckout(reproducibleProject.getAssociatedBranch(), "/srv/versioning/" + projectId);
+        ExecutionContext executionContext = SecurityContextHelper.getExecutionContext();
+        LOGGER.info("ALEX rulez cu executiin context " + executionContext.userId()+  " " + executionContext.jwt());
+        CompletableFuture<String> backupOwlBinaryTask = service.makeBackupForOwlBinaryFile(project);
+        CompletableFuture<RegularTempFile> collectionsBackupTask = CompletableFuture.runAsync(() -> backupFilesProcessor.dumpMongoDb())
+                .thenApply(result -> backupFilesProcessor.createCollectionsBackup(project));
+        CompletableFuture<Void> writeChangedEntities = CompletableFuture.runAsync(() -> service.saveEntitiesSinceLastBackupDate(project, allChangedEntities, reproducibleProject, executionContext));
 
         try {
-            CompletableFuture.allOf(backupOwlBinaryTask, collectionsBackupTask, createGitRepo).join();
+            CompletableFuture.allOf(backupOwlBinaryTask, collectionsBackupTask, writeChangedEntities).join();
             RegularTempFile owlBinary = RegularTempFile.create(backupOwlBinaryTask.get());
             RegularTempFile mongoCollections = collectionsBackupTask.get();
 
-            List<IRI> saveEntitiesTask = service.saveEntitiesSinceLastBackupDate(project);
 
-            String commitMessage = String.join(", ", saveEntitiesTask.stream().map(IRI::toString).toList());
+            String commitMessage = String.join(", ", allChangedEntities.stream().map(IRI::toString).toList());
 
             Path finalBackupFilesArchive = storageService.combineFilesIntoArchive(backupDirectoryProvider.get(project), mongoCollections, owlBinary);
 
@@ -79,7 +96,7 @@ public class ProjectBackupService {
 
 
             mongoCollections.clearTempFiles();
-            return saveEntitiesTask;
+            return allChangedEntities;
         } catch (Exception e) {
             mailgunApiService.sendMail(e);
             throw new RuntimeException("Error during backup", e);

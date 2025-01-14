@@ -11,6 +11,7 @@ import edu.stanford.protege.versioning.owl.commands.*;
 import edu.stanford.protege.versioning.repository.ReproducibleProjectsRepository;
 import edu.stanford.protege.webprotege.common.ProjectId;
 import edu.stanford.protege.webprotege.ipc.CommandExecutor;
+import edu.stanford.protege.webprotege.ipc.ExecutionContext;
 import org.semanticweb.owlapi.model.IRI;
 import org.slf4j.*;
 import org.springframework.scheduling.annotation.Async;
@@ -78,23 +79,38 @@ public class OwlClassesService {
     }
 
 
-    public List<IRI> saveEntitiesSinceLastBackupDate(ProjectId projectId) {
-        List<IRI> response = new ArrayList<>();
+    public List<IRI> getAllChangedEntitiesSinceLastBackupDate(ProjectId projectId){
+        ReproducibleProject reproducibleProject = reproducibleProjectsRepository.findByProjectId(projectId.id());
+        if (reproducibleProject == null) {
+            throw new ApplicationException("Project id not found " + projectId);
+        }
+        ChangedEntities changedEntities;
         try {
-            ReproducibleProject reproducibleProject = reproducibleProjectsRepository.findByProjectId(projectId.id());
-            if (reproducibleProject == null) {
-                throw new ApplicationException("Project id not found " + projectId);
-            }
-            ChangedEntities changedEntities = changedEntitiesExecutor.execute(new GetChangedEntitiesRequest(projectId, reproducibleProject.getLastBackupTimestamp()), SecurityContextHelper.getExecutionContext())
+            changedEntities = changedEntitiesExecutor.execute(new GetChangedEntitiesRequest(projectId, reproducibleProject.getLastBackupTimestamp()), SecurityContextHelper.getExecutionContext())
                     .get()
                     .changedEntities();
+        } catch (InterruptedException | ExecutionException e) {
+            LOGGER.error("Couldn't fetch changed entities for " + projectId.id());
+            throw new RuntimeException("Couldn't fetch changed entities for " + projectId.id(), e);
+        }
 
-            changedEntities.createdEntities().addAll(changedEntities.updatedEntities());
-            List<IRI> allChangeEntities = changedEntities.createdEntities().stream().map(IRI::create).toList();
+        changedEntities.createdEntities().addAll(changedEntities.updatedEntities());
+        return changedEntities.createdEntities().stream().map(IRI::create).toList();
+    }
+
+    @Async
+    public void saveEntitiesSinceLastBackupDate(ProjectId projectId,
+                                                List<IRI> allChangeEntities,
+                                                ReproducibleProject reproducibleProject,
+                                                ExecutionContext executionContext) {
+        List<IRI> response = new ArrayList<>();
+        try {
+            LOGGER.info("ALEX rulez cu executiin context " + executionContext.userId()+  " " + executionContext.jwt());
+
             Map<IRI, JsonNode> changedEntitiesInfo = new HashMap<>();
             for (IRI iri : allChangeEntities) {
                 try {
-                    JsonNode dto = getEntityInfo.execute(new GetProjectEntityInfoRequest(projectId, iri), SecurityContextHelper.getExecutionContext()).get().entityDto();
+                    JsonNode dto = getEntityInfo.execute(new GetProjectEntityInfoRequest(projectId, iri), executionContext).get().entityDto();
                     changedEntitiesInfo.put(iri, dto);
                 } catch (Throwable e) {
                     LOGGER.info("Error fetching IRI " + iri, e);
@@ -118,7 +134,6 @@ public class OwlClassesService {
             LOGGER.error("Error fetching changed entities", e);
             throw new ApplicationException("Error fetching changed entities");
         }
-        return response;
     }
 
     @Async
