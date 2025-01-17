@@ -29,7 +29,7 @@ public class VersioningCommandsController {
     private ProjectBackupService backupService;
 
 
-    @PostMapping(value = {"/{projectId}/initial-entity-files"})
+    @PostMapping(value = {"/{projectId}/init-entity-files"})
     public ResponseEntity<List<IRI>> createInitialFiles(@PathVariable String projectId) throws ExecutionException, InterruptedException {
         List<IRI> savedIris = service.saveInitialOntologyInfo(ProjectId.valueOf(projectId));
         return ResponseEntity.ok(savedIris);
