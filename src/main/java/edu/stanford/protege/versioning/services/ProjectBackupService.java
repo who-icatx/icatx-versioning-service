@@ -15,6 +15,7 @@ import org.semanticweb.owlapi.model.IRI;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.nio.file.Path;
@@ -54,6 +55,9 @@ public class ProjectBackupService {
     @Autowired
     private MailgunApiService mailgunApiService;
 
+    @Value("${webprotege.versioning.location}")
+    private String smallGitFilePrefixLocation;
+
 
 
     public List<IRI> createBackup(String projectId) {
@@ -73,7 +77,7 @@ public class ProjectBackupService {
             throw new RuntimeException("Project not found " + projectId);
         }
 
-        gitService.gitCheckout(reproducibleProject.getAssociatedBranch(), "/srv/versioning/" + projectId);
+        gitService.gitCheckout(reproducibleProject.getAssociatedBranch(), smallGitFilePrefixLocation + projectId);
         ExecutionContext executionContext = SecurityContextHelper.getExecutionContext();
 
         CompletableFuture<String> backupOwlBinaryTask = service.makeBackupForOwlBinaryFile(project);
