@@ -103,10 +103,7 @@ public class OwlClassesService {
                                                 List<IRI> allChangeEntities,
                                                 ReproducibleProject reproducibleProject,
                                                 ExecutionContext executionContext) {
-        List<IRI> response = new ArrayList<>();
         try {
-            LOGGER.info("ALEX rulez cu executiin context " + executionContext.userId()+  " " + executionContext.jwt());
-
             Map<IRI, JsonNode> changedEntitiesInfo = new HashMap<>();
             for (IRI iri : allChangeEntities) {
                 try {
@@ -114,17 +111,14 @@ public class OwlClassesService {
                     changedEntitiesInfo.put(iri, dto);
                 } catch (Throwable e) {
                     LOGGER.info("Error fetching IRI " + iri, e);
-//                    throw new ApplicationException("Error fetching IRI " + iri, e);
                 }
             }
 
             for (IRI iri : changedEntitiesInfo.keySet()) {
                 try {
                     fileService.writeEntities(iri, changedEntitiesInfo.get(iri), projectId);
-                    response.add(iri);
                 } catch (Exception e) {
                     LOGGER.error("Error writing file for IRI " + iri, e);
-//                    throw new ApplicationException("Error writing file for IRI " + iri, e);
                 }
             }
 

@@ -75,7 +75,7 @@ public class ProjectBackupService {
 
         gitService.gitCheckout(reproducibleProject.getAssociatedBranch(), "/srv/versioning/" + projectId);
         ExecutionContext executionContext = SecurityContextHelper.getExecutionContext();
-        LOGGER.info("ALEX rulez cu executiin context " + executionContext.userId()+  " " + executionContext.jwt());
+
         CompletableFuture<String> backupOwlBinaryTask = service.makeBackupForOwlBinaryFile(project);
         CompletableFuture<RegularTempFile> collectionsBackupTask = CompletableFuture.runAsync(() -> backupFilesProcessor.dumpMongoDb())
                 .thenApply(result -> backupFilesProcessor.createCollectionsBackup(project));

@@ -2,6 +2,7 @@ package edu.stanford.protege.versioning.files;
 
 
 import com.fasterxml.jackson.databind.*;
+import edu.stanford.protege.versioning.ApplicationException;
 import edu.stanford.protege.webprotege.common.ProjectId;
 import org.semanticweb.owlapi.model.IRI;
 import org.slf4j.*;
@@ -39,13 +40,10 @@ public class FileService {
 
     public void writeEntities(IRI entityIri, JsonNode dto, ProjectId projectId) {
 
-        // Extract the last 3 characters of the identifier
         String lastThreeChars = getLastThreeCharacters(entityIri.toString());
 
-        // Define the directory path
         File directory = new File(versioningLocation + projectId.id() + "/" + lastThreeChars);
 
-        // Create the directory if it does not exist
         if (!directory.exists()) {
             if (directory.mkdirs()) {
                 System.out.println("Directory created: " + directory.getAbsolutePath());
@@ -54,14 +52,12 @@ public class FileService {
             }
         }
 
-        // Write the object as JSON inside the directory
         File jsonFile = new File(directory, extractEntityId(entityIri.toString()) + ".json");
         writeObjectToJsonFile(jsonFile, dto);
     }
 
     private String extractEntityId(String iri) {
         if (iri != null && iri.contains("/")) {
-            // Split the string by '/' and return the last part
             String[] parts = iri.split("/");
             return parts[parts.length - 1];
         }
@@ -85,17 +81,11 @@ public class FileService {
         }
     }
 
-
     public void createSmallFilesDirectory(ProjectId projectId) {
         File directory = new File(versioningLocation + projectId.id());
 
-        // Create the directory if it does not exist
         if (!directory.exists()) {
-            if (directory.mkdirs()) {
-                System.out.println("Directory created: " + directory.getAbsolutePath());
-            } else {
-                throw new RuntimeException("Error creating directory" + directory.getAbsolutePath());
-            }
+            throw new ApplicationException("Error creating directory" + directory.getAbsolutePath());
         }
     }
 }

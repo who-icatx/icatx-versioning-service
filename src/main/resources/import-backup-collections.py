@@ -61,8 +61,9 @@ def import_json_to_mongo(mongo_uri, db_name, input_path):
     :param db_name: MongoDB database name.
     :param input_path: Path to the directory containing `.json` files.
     """
-    batch_size = 500  # Number of documents per batch
-    delay = 1  # Delay (in seconds) between each batch
+    batch_size = int(os.getenv('WEBPROTEGE_IMPORT_BATCH_SIZE', 1500))  # Default to 1500 if not set
+    delay = float(os.getenv('WEBPROTEGE_IMPORT_DELAY', 0.3))  # Default to 0.3 seconds if not set
+
 
     try:
         for file_name in os.listdir(input_path):

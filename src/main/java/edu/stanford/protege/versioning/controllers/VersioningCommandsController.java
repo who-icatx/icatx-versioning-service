@@ -29,14 +29,13 @@ public class VersioningCommandsController {
     private ProjectBackupService backupService;
 
 
-
-    @PostMapping(value = {"/{projectId}/initial-files"})
+    @PostMapping(value = {"/{projectId}/initial-entity-files"})
     public ResponseEntity<List<IRI>> createInitialFiles(@PathVariable String projectId) throws ExecutionException, InterruptedException {
         List<IRI> savedIris = service.saveInitialOntologyInfo(ProjectId.valueOf(projectId));
         return ResponseEntity.ok(savedIris);
     }
 
-    @PostMapping(value = {"/{projectId}/create-backup"})
+    @PostMapping(value = {"/{projectId}/backup"})
     public ResponseEntity<List<IRI>> createBackup(@PathVariable String projectId) {
         var savedIris = backupService.createBackup(projectId);
         return ResponseEntity.ok(savedIris);
