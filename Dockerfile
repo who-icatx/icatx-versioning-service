@@ -29,7 +29,10 @@ COPY src/main/resources/dump-project-collections.py /app/
 COPY src/main/resources/dump-mongo.py /app/
 COPY src/main/resources/commitBackup.sh /app/commitBackup.sh
 COPY src/main/resources/gitCheckout.sh /app/gitCheckout.sh
+COPY src/main/resources/gitInit.sh /app/gitInit.sh
 RUN chmod +x /app/commitBackup.sh
+RUN chmod +x /app/gitCheckout.sh
+RUN chmod +x /app/gitInit.sh
 
 # Set Git identity via environment variables
 ENV GIT_AUTHOR_NAME="Your Name"

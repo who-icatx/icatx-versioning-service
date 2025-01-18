@@ -9,11 +9,13 @@ import edu.stanford.protege.versioning.files.FileService;
 import edu.stanford.protege.versioning.history.*;
 import edu.stanford.protege.versioning.owl.commands.*;
 import edu.stanford.protege.versioning.repository.ReproducibleProjectsRepository;
+import edu.stanford.protege.versioning.services.git.GitService;
 import edu.stanford.protege.webprotege.common.ProjectId;
 import edu.stanford.protege.webprotege.ipc.CommandExecutor;
 import edu.stanford.protege.webprotege.ipc.ExecutionContext;
 import org.semanticweb.owlapi.model.IRI;
 import org.slf4j.*;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -34,29 +36,42 @@ public class OwlClassesService {
 
     private final FileService fileService;
 
+    private final GitService gitService;
     private final ReproducibleProjectsRepository reproducibleProjectsRepository;
+
+    @Value("${webprotege.versioning.jsonFileLocation}")
+    private String jsonFileLocation;
 
     public OwlClassesService(CommandExecutor<GetAllOwlClassesRequest, GetAllOwlClassesResponse> getAllClassesCommand,
                              CommandExecutor<GetProjectEntityInfoRequest, GetProjectEntityInfoResponse> getEntityInfo,
                              CommandExecutor<GetChangedEntitiesRequest, GetChangedEntitiesResponse> changedEntitiesExecutor,
                              CommandExecutor<CreateBackupOwlFileRequest, CreateBackupOwlFileResponse> createBackupOwlFileExecutor,
                              FileService fileService,
-                             ReproducibleProjectsRepository reproducibleProjectsRepository) {
+                             GitService gitService, ReproducibleProjectsRepository reproducibleProjectsRepository) {
         this.getAllClassesCommand = getAllClassesCommand;
         this.getEntityInfo = getEntityInfo;
         this.changedEntitiesExecutor = changedEntitiesExecutor;
         this.createBackupOwlFileExecutor = createBackupOwlFileExecutor;
         this.fileService = fileService;
+        this.gitService = gitService;
         this.reproducibleProjectsRepository = reproducibleProjectsRepository;
     }
 
 
     public List<IRI> saveInitialOntologyInfo(ProjectId projectId) throws ExecutionException, InterruptedException {
+        var reproducibleProject = reproducibleProjectsRepository.findByProjectId(projectId.id());
+
+        if (reproducibleProject == null) {
+            throw new ApplicationException("Project id not found " + projectId.id());
+        }
+
+        gitService.gitInitRepo(reproducibleProject.getAssociatedBranch(), projectId.id());
+
         List<IRI> initialIris = getAllClassesCommand.execute(new GetAllOwlClassesRequest(projectId), SecurityContextHelper.getExecutionContext()).get().owlClassList();
         var stopwatch = Stopwatch.createStarted();
         List<IRI> response = new ArrayList<>();
         int fileCount = 0;
-        for (IRI iri : initialIris) {
+        for (IRI iri : initialIris.subList(0, 15)) {
             try {
                 if (!fileService.getEntityFile(iri, projectId).exists()) {
                     JsonNode dto = getEntityInfo.execute(new GetProjectEntityInfoRequest(projectId, iri), SecurityContextHelper.getExecutionContext()).get().entityDto();
@@ -75,6 +90,7 @@ public class OwlClassesService {
                 fileCount,
                 stopwatch.elapsed()
                         .toMillis());
+        gitService.commitAndPushChanges(jsonFileLocation + projectId.id(), "" , "Initial commit");
         return response;
     }
 

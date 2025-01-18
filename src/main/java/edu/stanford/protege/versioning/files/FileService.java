@@ -20,7 +20,7 @@ public class FileService {
     private final ObjectMapper objectMapper;
 
 
-    public FileService(@Value("${webprotege.versioning.location}") String versioningLocation, ObjectMapper objectMapper) {
+    public FileService(@Value("${webprotege.versioning.jsonFileLocation}") String versioningLocation, ObjectMapper objectMapper) {
         this.versioningLocation = versioningLocation;
         this.objectMapper = objectMapper;
     }
