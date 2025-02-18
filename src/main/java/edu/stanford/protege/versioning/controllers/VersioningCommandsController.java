@@ -1,10 +1,9 @@
 package edu.stanford.protege.versioning.controllers;
 
 
-import edu.stanford.protege.versioning.dtos.RegularTempFile;
 import edu.stanford.protege.versioning.owl.OwlClassesService;
+import edu.stanford.protege.versioning.repository.ReproducibleProjectsRepository;
 import edu.stanford.protege.versioning.services.*;
-import edu.stanford.protege.versioning.services.backupProcessor.BackupFilesProcessor;
 import edu.stanford.protege.versioning.services.email.MailgunApiService;
 import edu.stanford.protege.versioning.services.git.GitService;
 import edu.stanford.protege.versioning.services.storage.StorageService;
@@ -27,68 +26,19 @@ public class VersioningCommandsController {
     private OwlClassesService service;
 
     @Autowired
-    private BackupFilesProcessor backupService;
+    private ProjectBackupService backupService;
 
-    @Autowired
-    private StorageService storageService;
 
-    @Autowired
-    private ProjectBackupDirectoryProvider backupDirectoryProvider;
-
-    @Autowired
-    private ProjectVersioningDirectoryProvider versioningDirectoryProvider;
-
-    @Autowired
-    private GitService gitService;
-
-    @Autowired
-    private MailgunApiService mailgunApiService;
-
-    @PostMapping(value = {"/{projectId}/initial-files"})
+    @PostMapping(value = {"/{projectId}/init-entity-files"})
     public ResponseEntity<List<IRI>> createInitialFiles(@PathVariable String projectId) throws ExecutionException, InterruptedException {
         List<IRI> savedIris = service.saveInitialOntologyInfo(ProjectId.valueOf(projectId));
         return ResponseEntity.ok(savedIris);
     }
 
-    @GetMapping(value = {"/{projectId}/save-changed-entities"})
-    public ResponseEntity<List<IRI>> testSaveChangedEntities(@PathVariable String projectId) {
-        List<IRI> updatedIris = service.saveEntitiesSinceLastBackupDate(ProjectId.valueOf(projectId));
-        return ResponseEntity.ok(updatedIris);
-    }
-
-    @PostMapping(value = {"/{projectId}/create-backup"})
+    @PostMapping(value = {"/{projectId}/backup"})
     public ResponseEntity<List<IRI>> createBackup(@PathVariable String projectId) {
-        ProjectId project = ProjectId.valueOf(projectId);
-
-        CompletableFuture<String> backupOwlBinaryTask = service.makeBackupForOwlBinaryFile(project);
-        CompletableFuture<RegularTempFile> collectionsBackupTask = CompletableFuture.runAsync(() -> backupService.dumpMongoDb())
-                .thenApply(result -> backupService.createCollectionsBackup(project));
-
-        try {
-            CompletableFuture.allOf(backupOwlBinaryTask, collectionsBackupTask).join();
-            RegularTempFile owlBinary = RegularTempFile.create(backupOwlBinaryTask.get());
-            RegularTempFile mongoCollections = collectionsBackupTask.get();
-
-
-            List<IRI> saveEntitiesTask = service.saveEntitiesSinceLastBackupDate(project);
-
-            String commitMessage = String.join(", ", saveEntitiesTask.stream().map(IRI::toString).toList());
-
-            Path finalBackupFilesArchive = storageService.combineFilesIntoArchive(backupDirectoryProvider.get(project), mongoCollections, owlBinary);
-
-
-            gitService.commitAndPushChanges(versioningDirectoryProvider.get(project).toAbsolutePath().toString(), finalBackupFilesArchive.toAbsolutePath().toString(), commitMessage);
-
-
-            mongoCollections.clearTempFiles();
-
-
-            return ResponseEntity.ok(saveEntitiesTask);
-
-        } catch (Exception e) {
-            mailgunApiService.sendMail(e);
-            throw new RuntimeException("Error during backup", e);
-        }
+        var savedIris = backupService.createBackup(projectId);
+        return ResponseEntity.ok(savedIris);
     }
 
 }

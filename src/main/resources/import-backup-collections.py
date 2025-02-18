@@ -4,13 +4,24 @@ import subprocess
 import sys
 import time
 import uuid
+from bson import ObjectId
+
+
+def is_uuid4(value):
+    """
+    Validates if a given value is a UUIDv4 string.
+    """
+    try:
+        uuid_obj = uuid.UUID(value)
+        return uuid_obj.version == 4
+    except (ValueError, TypeError):
+        return False
+
 
 def replace_project_id_in_json(input_path, new_project_id):
     """
     Replaces the `projectId` in all `.json` files within the specified input directory.
-
-    :param input_path: Path to the directory containing `.json` files.
-    :param new_project_id: The new `projectId` to replace in each file.
+    Handles `_id`: overwrites if it's a valid UUIDv4 (string), or removes if it's an ObjectId or invalid.
     """
     try:
         for file_name in os.listdir(input_path):
@@ -24,10 +35,16 @@ def replace_project_id_in_json(input_path, new_project_id):
                 with open(file_path, 'r', encoding='utf-8') as infile, open(temp_file_path, 'w', encoding='utf-8') as outfile:
                     for line in infile:
                         document = json.loads(line)
-                        document['_id'] = str(uuid.uuid4())  # replace `_id` field
-                        document['projectId'] = new_project_id # Update `projectId`
-                        outfile.write(json.dumps(document) + '\n')
+                        if '_id' in document:
+                            if isinstance(document['_id'], str) and is_uuid4(document['_id']):
+                                # If _id is a valid UUIDv4 string, overwrite with a new UUIDv4
+                                document['_id'] = str(uuid.uuid4())
+                            else:
+                                # If _id is not a valid UUIDv4 or is an ObjectId, remove it
+                                del document['_id']
 
+                        document['projectId'] = new_project_id  # Update `projectId`
+                        outfile.write(json.dumps(document) + '\n')
                 # Replace the original file with the updated one
                 os.replace(temp_file_path, file_path)
 
@@ -38,34 +55,73 @@ def replace_project_id_in_json(input_path, new_project_id):
 
 def import_json_to_mongo(mongo_uri, db_name, input_path):
     """
-    Imports `.json` files from the input directory into MongoDB.
+    Imports `.json` files from the input directory into MongoDB in batches.
 
     :param mongo_uri: MongoDB connection URI.
     :param db_name: MongoDB database name.
     :param input_path: Path to the directory containing `.json` files.
     """
+    batch_size = int(os.getenv('WEBPROTEGE_IMPORT_BATCH_SIZE', 1500))  # Default to 1500 if not set
+    delay = float(os.getenv('WEBPROTEGE_IMPORT_DELAY', 0.3))  # Default to 0.3 seconds if not set
+
+
     try:
         for file_name in os.listdir(input_path):
             if file_name.endswith('.json'):
                 collection_name = os.path.splitext(file_name)[0]
                 file_path = os.path.join(input_path, file_name)
 
-                print(f"Importing {file_name} into collection {collection_name}...")
+                print(f"Importing {file_name} into collection {collection_name} in batches...")
 
-                # Use mongoimport to import the JSON file
-                subprocess.run([
-                    "mongoimport",
-                    "--uri", mongo_uri,
-                    "--db", db_name,
-                    "--collection", collection_name,
-                    "--file", file_path
-                ], check=True)
+                with open(file_path, 'r', encoding='utf-8') as infile:
+                    batch = []
+                    for line_number, line in enumerate(infile, start=1):
+                        batch.append(json.loads(line))
+
+                        # Process a batch when the size reaches `batch_size`
+                        if len(batch) == batch_size:
+                            import_batch(batch, mongo_uri, db_name, collection_name)
+                            batch = []
+                            time.sleep(delay)  # Wait for `delay` seconds before the next batch
+
+                    # Import any remaining documents in the final batch
+                    if batch:
+                        import_batch(batch, mongo_uri, db_name, collection_name)
 
         print("All collections imported successfully!")
-    except subprocess.CalledProcessError as e:
-        print(f"Error importing data: {e}")
     except Exception as e:
         print(f"Unexpected error during import: {e}")
+
+
+def import_batch(batch, mongo_uri, db_name, collection_name):
+    """
+    Imports a single batch of documents into MongoDB.
+
+    :param batch: A list of documents to import.
+    :param mongo_uri: MongoDB connection URI.
+    :param db_name: MongoDB database name.
+    :param collection_name: Name of the target collection.
+    """
+    try:
+        temp_batch_file = f"{collection_name}_batch.json"
+        with open(temp_batch_file, 'w', encoding='utf-8') as batch_file:
+            for doc in batch:
+                batch_file.write(json.dumps(doc) + '\n')
+
+        subprocess.run([
+            "mongoimport",
+            "--uri", mongo_uri,
+            "--db", db_name,
+            "--collection", collection_name,
+            "--file", temp_batch_file
+        ], check=True)
+
+        os.remove(temp_batch_file)  # Clean up temporary batch file
+        print(f"Imported batch into collection {collection_name}")
+    except subprocess.CalledProcessError as e:
+        print(f"Error importing batch: {e}")
+    except Exception as e:
+        print(f"Unexpected error during batch import: {e}")
 
 
 if __name__ == "__main__":
