@@ -71,7 +71,7 @@ public class OwlClassesService {
         var stopwatch = Stopwatch.createStarted();
         List<IRI> response = new ArrayList<>();
         int fileCount = 0;
-        for (IRI iri : initialIris.subList(0, 15)) {
+        for (IRI iri : initialIris) {
             try {
                 if (!fileService.getEntityFile(iri, projectId).exists()) {
                     JsonNode dto = getEntityInfo.execute(new GetProjectEntityInfoRequest(projectId, iri), SecurityContextHelper.getExecutionContext()).get().entityDto();

@@ -34,6 +34,10 @@ RUN chmod +x /app/commitBackup.sh
 RUN chmod +x /app/gitCheckout.sh
 RUN chmod +x /app/gitInit.sh
 
+RUN sed -i 's/\r$//' /app/commitBackup.sh
+RUN sed -i 's/\r$//' /app/gitCheckout.sh
+RUN sed -i 's/\r$//' /app/gitInit.sh
+
 # Set Git identity via environment variables
 ENV GIT_AUTHOR_NAME="Your Name"
 ENV GIT_AUTHOR_EMAIL="you@example.com"

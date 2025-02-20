@@ -10,6 +10,8 @@ SSH_URL="$1"
 TARGET_PATH="$2"
 BRANCH_NAME="$3"
 
+echo "Running git init for $SSH_URL and  $TARGET_PATH and $BRANCH_NAME"
+
 # Validate SSH URL format
 if [[ ! "$SSH_URL" =~ ^git@.*:.*\.git$ ]]; then
   echo "Error: Invalid SSH URL format. Expected format is git@<host>:<repo>.git"
