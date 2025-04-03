@@ -22,7 +22,7 @@ else
 fi
 
 current_branch=$(git branch --show-current)
-git push origin "$current_branch"
+git push --force origin "$current_branch"
 
 # Retrieve the last commit ID
 last_commit_id=$(git rev-parse HEAD)
