@@ -55,7 +55,7 @@ jobs:
         id: release-outputs
         run: |
           echo "version=${{ steps.bump.outputs.tag }}" >> $GITHUB_OUTPUT
-          echo "service=webprotege-linearization-service" >> $GITHUB_OUTPUT
+          echo "service=icatx-versioning-service" >> $GITHUB_OUTPUT
 
   notify-bump:
     needs: build
