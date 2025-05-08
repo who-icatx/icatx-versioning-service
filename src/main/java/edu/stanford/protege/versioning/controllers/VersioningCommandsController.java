@@ -8,6 +8,7 @@ import edu.stanford.protege.versioning.services.email.MailgunApiService;
 import edu.stanford.protege.versioning.services.git.GitService;
 import edu.stanford.protege.versioning.services.storage.StorageService;
 import edu.stanford.protege.webprotege.common.ProjectId;
+import edu.stanford.protege.webprotege.ipc.util.CorrelationMDCUtil;
 import org.semanticweb.owlapi.model.IRI;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.nio.file.Path;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.*;
 
 @RestController
@@ -37,6 +39,8 @@ public class VersioningCommandsController {
 
     @PostMapping(value = {"/{projectId}/backup"})
     public ResponseEntity<List<IRI>> createBackup(@PathVariable String projectId) {
+        CorrelationMDCUtil.setCorrelationId(UUID.randomUUID().toString());
+
         var savedIris = backupService.createBackup(projectId);
         return ResponseEntity.ok(savedIris);
     }

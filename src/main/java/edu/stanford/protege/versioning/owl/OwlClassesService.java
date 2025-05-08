@@ -13,6 +13,7 @@ import edu.stanford.protege.versioning.services.git.GitService;
 import edu.stanford.protege.webprotege.common.ProjectId;
 import edu.stanford.protege.webprotege.ipc.CommandExecutor;
 import edu.stanford.protege.webprotege.ipc.ExecutionContext;
+import edu.stanford.protege.webprotege.ipc.util.CorrelationMDCUtil;
 import org.semanticweb.owlapi.model.IRI;
 import org.slf4j.*;
 import org.springframework.beans.factory.annotation.Value;
@@ -74,6 +75,7 @@ public class OwlClassesService {
         for (IRI iri : initialIris) {
             try {
                 if (!fileService.getEntityFile(iri, projectId).exists()) {
+                    CorrelationMDCUtil.setCorrelationId(UUID.randomUUID().toString());
                     JsonNode dto = getEntityInfo.execute(new GetProjectEntityInfoRequest(projectId, iri), SecurityContextHelper.getExecutionContext()).get().entityDto();
                     fileService.writeEntities(iri, dto, projectId);
                     response.add(iri);
