@@ -60,6 +60,7 @@ RUN python3 -c "import pymongo; print('pymongo installed successfully')" && \
 
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
+RUN sed -i 's/\r$//' /usr/local/bin/entrypoint.sh
 
 # Default entry point for the container
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
