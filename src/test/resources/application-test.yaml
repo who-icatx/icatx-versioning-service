@@ -1,0 +1,14 @@
+spring:
+  data:
+    mongodb:
+      auto-index-creation: true
+
+webprotege:
+  backup:
+    projectIds: project1,project2,project3
+  versioning:
+    location: /tmp/versioning/
+    jsonFileLocation: /tmp/
+    sshUrl: git@github.com:who-icatx/whofic-ontology-files.git
+  directories:
+    backup: /tmp/backup 
