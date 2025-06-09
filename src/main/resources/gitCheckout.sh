@@ -45,11 +45,15 @@ else
     fi
 fi
 
-
-# Pull the latest changes
-if git pull; then
-    echo "Successfully pulled latest changes."
+# Set up upstream tracking and pull the latest changes
+if git branch --set-upstream-to="origin/$BRANCH" "$BRANCH" 2>/dev/null || true; then
+    if git pull; then
+        echo "Successfully pulled latest changes."
+    else
+        echo "Failed to pull changes."
+        exit 1
+    fi
 else
-    echo "Failed to pull changes."
+    echo "Failed to set up upstream tracking."
     exit 1
 fi
