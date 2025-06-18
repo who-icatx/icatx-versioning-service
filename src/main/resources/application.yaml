@@ -44,6 +44,8 @@ webprotege:
     location: /srv/versioning/
     jsonFileLocation: /srv/
     sshUrl: git@github.com:who-icatx/whofic-ontology-files.git
+  backup:
+    projectIds: 9ccae39f-f113-4f68-8cee-34cddaab996a
 
   minio:
     accessKey: webprotege
