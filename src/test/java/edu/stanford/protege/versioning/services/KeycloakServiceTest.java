@@ -33,7 +33,7 @@ class KeycloakServiceTest {
         ReflectionTestUtils.setField(keycloakService, "clientSecret", "test-secret");
     }
 
-/*    @Test
+    @Test
     void shouldReturnAccessToken() {
         // Given
         KeycloakService.TokenResponse mockResponse = new KeycloakService.TokenResponse();
@@ -64,5 +64,5 @@ class KeycloakServiceTest {
         // When & Then
         RuntimeException exception = assertThrows(RuntimeException.class, () -> keycloakService.getAccessToken());
         assertEquals("Failed to authenticate with Keycloak", exception.getMessage());
-    }*/
+    }
 } 

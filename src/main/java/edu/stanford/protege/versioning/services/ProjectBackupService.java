@@ -63,7 +63,7 @@ public class ProjectBackupService {
     public List<IRI> createBackup(String projectId, ExecutionContext executionContext) {
         LOGGER.info("Starting create backup flow for project " + projectId + "with execution context " + executionContext);
         ProjectId project = ProjectId.valueOf(projectId);
-       /* List<IRI> allChangedEntities = service.getAllChangedEntitiesSinceLastBackupDate(project);
+        List<IRI> allChangedEntities = service.getAllChangedEntitiesSinceLastBackupDate(project);
         ReproducibleProject reproducibleProject = reproducibleProjectsRepository.findByProjectId(projectId);
 
         if(allChangedEntities.isEmpty()){
@@ -103,7 +103,6 @@ public class ProjectBackupService {
         } catch (Exception e) {
             mailgunApiService.sendMail(e);
             throw new RuntimeException("Error during backup", e);
-        }*/
-        return new ArrayList<>();
+        }
     }
 }
