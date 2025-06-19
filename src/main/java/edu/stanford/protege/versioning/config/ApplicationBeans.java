@@ -12,6 +12,7 @@ import edu.stanford.protege.webprotege.jackson.IriDeserializer;
 import edu.stanford.protege.webprotege.jackson.*;
 import org.semanticweb.owlapi.model.IRI;
 import org.springframework.context.annotation.*;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.config.annotation.*;
 import org.springframework.web.util.UrlPathHelper;
 import uk.ac.manchester.cs.owl.owlapi.OWLDataFactoryImpl;
@@ -71,5 +72,9 @@ public class ApplicationBeans implements WebMvcConfigurer {
         return new CommandExecutorImpl<>(CreateBackupOwlFileResponse.class);
     }
 
+    @Bean
+    public RestTemplate restTemplate() {
+        return new RestTemplate();
+    }
 
 }

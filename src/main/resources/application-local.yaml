@@ -46,6 +46,10 @@ webprotege:
   allowedOrigin: webprotege-local.edu
   versioning:
     location: /srv/versioning/
+  keycloak:
+    token-url: http://webprotege-local.edu/keycloak-admin/realms/webprotege/protocol/openid-connect/token
+    client-id: Icatx_application
+    client-secret: 3NIpcWU6zyH765G6UOvQ9d78swJmKks6
 
   minio:
     accessKey: webprotege

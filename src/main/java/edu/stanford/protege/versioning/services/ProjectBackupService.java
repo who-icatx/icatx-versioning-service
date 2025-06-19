@@ -60,7 +60,7 @@ public class ProjectBackupService {
 
 
 
-    public List<IRI> createBackup(String projectId) {
+    public List<IRI> createBackup(String projectId, ExecutionContext executionContext) {
         LOGGER.info("Starting create backup flow for project " + projectId);
         ProjectId project = ProjectId.valueOf(projectId);
         List<IRI> allChangedEntities = service.getAllChangedEntitiesSinceLastBackupDate(project);
@@ -78,7 +78,6 @@ public class ProjectBackupService {
         }
 
         gitService.gitCheckout(reproducibleProject.getAssociatedBranch(), smallGitFilePrefixLocation + projectId);
-        ExecutionContext executionContext = SecurityContextHelper.getExecutionContext();
 
         CompletableFuture<String> backupOwlBinaryTask = service.makeBackupForOwlBinaryFile(project);
         CompletableFuture<RegularTempFile> collectionsBackupTask = CompletableFuture.runAsync(() -> backupFilesProcessor.dumpMongoDb())

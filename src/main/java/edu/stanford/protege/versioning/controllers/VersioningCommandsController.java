@@ -1,6 +1,7 @@
 package edu.stanford.protege.versioning.controllers;
 
 
+import edu.stanford.protege.versioning.SecurityContextHelper;
 import edu.stanford.protege.versioning.owl.OwlClassesService;
 import edu.stanford.protege.versioning.repository.ReproducibleProjectsRepository;
 import edu.stanford.protege.versioning.services.*;
@@ -41,7 +42,7 @@ public class VersioningCommandsController {
     public ResponseEntity<List<IRI>> createBackup(@PathVariable String projectId) {
         CorrelationMDCUtil.setCorrelationId(UUID.randomUUID().toString());
 
-        var savedIris = backupService.createBackup(projectId);
+        var savedIris = backupService.createBackup(projectId, SecurityContextHelper.getExecutionContext());
         return ResponseEntity.ok(savedIris);
     }
 

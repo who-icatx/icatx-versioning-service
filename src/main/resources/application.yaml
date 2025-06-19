@@ -8,7 +8,6 @@ springdoc:
     operations-sorter: alpha
     tags-sorter: alpha
 
-
 spring:
   application:
     name: icatx-versioning-service
@@ -46,6 +45,10 @@ webprotege:
     sshUrl: git@github.com:who-icatx/whofic-ontology-files.git
   backup:
     projectIds: 9ccae39f-f113-4f68-8cee-34cddaab996a
+  keycloak:
+    token-url: http://webprotege-local.edu/keycloak-admin/realms/webprotege/protocol/openid-connect/token
+    client-id: Icatx_application
+    client-secret: 3NIpcWU6zyH765G6UOvQ9d78swJmKks6
 
   minio:
     accessKey: webprotege
