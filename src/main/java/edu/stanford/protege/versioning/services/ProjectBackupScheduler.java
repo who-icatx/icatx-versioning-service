@@ -60,9 +60,7 @@ public class ProjectBackupScheduler {
             try {
                 LOGGER.info("Starting backup for project: {}", projectId);
                 // Use Keycloak service execution context instead of SecurityContextHelper
-                ExecutionContext executionContext = KeycloakExecutionContextHelper.createServiceExecutionContext(accessToken);
-                LOGGER.info("ALEX " + executionContext);
-              //  backupService.createBackup(projectId, KeycloakExecutionContextHelper.createServiceExecutionContext(accessToken));
+                backupService.createBackup(projectId, KeycloakExecutionContextHelper.createServiceExecutionContext(accessToken));
                 LOGGER.info("Successfully completed backup for project: {}", projectId);
             } catch (Exception e) {
                 LOGGER.error("Failed to backup project: " + projectId, e);
