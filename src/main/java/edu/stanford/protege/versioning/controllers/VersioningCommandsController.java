@@ -49,10 +49,4 @@ public class VersioningCommandsController {
         return ResponseEntity.ok(savedIris);
     }
 
-    @GetMapping(value = "/test")
-    public ResponseEntity<String> testScheduler() {
-        this.scheduler.scheduledBackup();
-        return ResponseEntity.ok("OK");
-    }
-
 }
