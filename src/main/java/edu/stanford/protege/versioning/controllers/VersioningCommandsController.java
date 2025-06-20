@@ -34,7 +34,7 @@ public class VersioningCommandsController {
 
     @PostMapping(value = {"/{projectId}/init-entity-files"})
     public ResponseEntity<List<IRI>> createInitialFiles(@PathVariable String projectId) throws ExecutionException, InterruptedException {
-        List<IRI> savedIris = service.saveInitialOntologyInfo(ProjectId.valueOf(projectId));
+        List<IRI> savedIris = service.saveInitialOntologyInfo(ProjectId.valueOf(projectId), SecurityContextHelper.getExecutionContext());
         return ResponseEntity.ok(savedIris);
     }
 

@@ -59,7 +59,7 @@ public class OwlClassesService {
     }
 
 
-    public List<IRI> saveInitialOntologyInfo(ProjectId projectId) throws ExecutionException, InterruptedException {
+    public List<IRI> saveInitialOntologyInfo(ProjectId projectId, ExecutionContext executionContext) throws ExecutionException, InterruptedException {
         var reproducibleProject = reproducibleProjectsRepository.findByProjectId(projectId.id());
 
         if (reproducibleProject == null) {
@@ -68,7 +68,7 @@ public class OwlClassesService {
 
         gitService.gitInitRepo(reproducibleProject.getAssociatedBranch(), projectId.id());
 
-        List<IRI> initialIris = getAllClassesCommand.execute(new GetAllOwlClassesRequest(projectId), SecurityContextHelper.getExecutionContext()).get().owlClassList();
+        List<IRI> initialIris = getAllClassesCommand.execute(new GetAllOwlClassesRequest(projectId), executionContext).get().owlClassList();
         var stopwatch = Stopwatch.createStarted();
         List<IRI> response = new ArrayList<>();
         int fileCount = 0;
@@ -76,7 +76,7 @@ public class OwlClassesService {
             try {
                 if (!fileService.getEntityFile(iri, projectId).exists()) {
                     CorrelationMDCUtil.setCorrelationId(UUID.randomUUID().toString());
-                    JsonNode dto = getEntityInfo.execute(new GetProjectEntityInfoRequest(projectId, iri), SecurityContextHelper.getExecutionContext()).get().entityDto();
+                    JsonNode dto = getEntityInfo.execute(new GetProjectEntityInfoRequest(projectId, iri), executionContext).get().entityDto();
                     fileService.writeEntities(iri, dto, projectId);
                     response.add(iri);
                     fileCount++;
@@ -97,14 +97,14 @@ public class OwlClassesService {
     }
 
 
-    public List<IRI> getAllChangedEntitiesSinceLastBackupDate(ProjectId projectId){
+    public List<IRI> getAllChangedEntitiesSinceLastBackupDate(ProjectId projectId, ExecutionContext executionContext){
         ReproducibleProject reproducibleProject = reproducibleProjectsRepository.findByProjectId(projectId.id());
         if (reproducibleProject == null) {
             throw new ApplicationException("Project id not found " + projectId);
         }
         ChangedEntities changedEntities;
         try {
-            changedEntities = changedEntitiesExecutor.execute(new GetChangedEntitiesRequest(projectId, reproducibleProject.getLastBackupTimestamp()), SecurityContextHelper.getExecutionContext())
+            changedEntities = changedEntitiesExecutor.execute(new GetChangedEntitiesRequest(projectId, reproducibleProject.getLastBackupTimestamp()), executionContext)
                     .get()
                     .changedEntities();
         } catch (InterruptedException | ExecutionException e) {
@@ -149,9 +149,9 @@ public class OwlClassesService {
     }
 
     @Async
-    public CompletableFuture<String> makeBackupForOwlBinaryFile(ProjectId projectId) {
+    public CompletableFuture<String> makeBackupForOwlBinaryFile(ProjectId projectId, ExecutionContext executionContext) {
         try {
-            return createBackupOwlFileExecutor.execute(CreateBackupOwlFileRequest.create(projectId), SecurityContextHelper.getExecutionContext())
+            return createBackupOwlFileExecutor.execute(CreateBackupOwlFileRequest.create(projectId), executionContext)
                     .thenApply(CreateBackupOwlFileResponse::owlFileBackupLocation);
         } catch (Exception e) {
             LOGGER.error("Error creating backup for owl file for projectId:" + projectId, e);
