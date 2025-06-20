@@ -32,6 +32,9 @@ public class VersioningCommandsController {
     private ProjectBackupService backupService;
 
 
+    @Autowired
+    private ProjectBackupScheduler scheduler;
+
     @PostMapping(value = {"/{projectId}/init-entity-files"})
     public ResponseEntity<List<IRI>> createInitialFiles(@PathVariable String projectId) throws ExecutionException, InterruptedException {
         List<IRI> savedIris = service.saveInitialOntologyInfo(ProjectId.valueOf(projectId), SecurityContextHelper.getExecutionContext());
@@ -44,6 +47,12 @@ public class VersioningCommandsController {
 
         var savedIris = backupService.createBackup(projectId, SecurityContextHelper.getExecutionContext());
         return ResponseEntity.ok(savedIris);
+    }
+
+    @GetMapping(value = "/test")
+    public ResponseEntity<String> testScheduler() {
+        this.scheduler.scheduledBackup();
+        return ResponseEntity.ok("OK");
     }
 
 }

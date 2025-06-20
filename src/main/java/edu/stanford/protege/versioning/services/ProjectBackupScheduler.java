@@ -33,7 +33,7 @@ public class ProjectBackupScheduler {
     private KeycloakService keycloakService;
 
 
-    @Scheduled(cron = "0 0 06 05 * ?")
+    @Scheduled(cron = "0 0 23 * * ?")
     public void scheduledBackup() {
         LOGGER.info("Starting scheduled backup for all configured projects");
 
