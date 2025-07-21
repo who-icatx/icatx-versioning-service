@@ -41,6 +41,11 @@ public class VersioningCommandsController {
         return ResponseEntity.ok(savedIris);
     }
 
+    @PostMapping(value = {"/{projectId}/init-children-files"})
+    public ResponseEntity<String> createInitialChildrenFiles(@PathVariable String projectId) throws ExecutionException, InterruptedException, TimeoutException {
+        service.initialEntitiesChildrenSave(ProjectId.valueOf(projectId), SecurityContextHelper.getExecutionContext());
+        return ResponseEntity.ok("OK");
+    }
     @PostMapping(value = {"/{projectId}/backup"})
     public ResponseEntity<List<IRI>> createBackup(@PathVariable String projectId) {
         CorrelationMDCUtil.setCorrelationId(UUID.randomUUID().toString());
