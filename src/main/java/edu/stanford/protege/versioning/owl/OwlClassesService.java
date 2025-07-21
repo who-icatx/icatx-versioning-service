@@ -2,10 +2,12 @@ package edu.stanford.protege.versioning.owl;
 
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Stopwatch;
 import edu.stanford.protege.versioning.*;
 import edu.stanford.protege.versioning.entity.*;
 import edu.stanford.protege.versioning.files.FileService;
+import edu.stanford.protege.versioning.handlers.UpdateEntityChildrenRequest;
 import edu.stanford.protege.versioning.history.*;
 import edu.stanford.protege.versioning.owl.commands.*;
 import edu.stanford.protege.versioning.repository.ReproducibleProjectsRepository;
@@ -34,11 +36,14 @@ public class OwlClassesService {
     private final CommandExecutor<GetProjectEntityInfoRequest, GetProjectEntityInfoResponse> getEntityInfo;
     private final CommandExecutor<GetChangedEntitiesRequest, GetChangedEntitiesResponse> changedEntitiesExecutor;
     private final CommandExecutor<CreateBackupOwlFileRequest, CreateBackupOwlFileResponse> createBackupOwlFileExecutor;
+    private final CommandExecutor<GetEntityChildrenRequest, GetEntityChildrenResponse> entityChildrenExecutor;
 
     private final FileService fileService;
 
     private final GitService gitService;
     private final ReproducibleProjectsRepository reproducibleProjectsRepository;
+
+    private final ObjectMapper objectMapper;
 
     @Value("${webprotege.versioning.jsonFileLocation}")
     private String jsonFileLocation;
@@ -47,15 +52,17 @@ public class OwlClassesService {
                              CommandExecutor<GetProjectEntityInfoRequest, GetProjectEntityInfoResponse> getEntityInfo,
                              CommandExecutor<GetChangedEntitiesRequest, GetChangedEntitiesResponse> changedEntitiesExecutor,
                              CommandExecutor<CreateBackupOwlFileRequest, CreateBackupOwlFileResponse> createBackupOwlFileExecutor,
-                             FileService fileService,
-                             GitService gitService, ReproducibleProjectsRepository reproducibleProjectsRepository) {
+                             CommandExecutor<GetEntityChildrenRequest, GetEntityChildrenResponse> entityChildrenExecutor, FileService fileService,
+                             GitService gitService, ReproducibleProjectsRepository reproducibleProjectsRepository, ObjectMapper objectMapper) {
         this.getAllClassesCommand = getAllClassesCommand;
         this.getEntityInfo = getEntityInfo;
         this.changedEntitiesExecutor = changedEntitiesExecutor;
         this.createBackupOwlFileExecutor = createBackupOwlFileExecutor;
+        this.entityChildrenExecutor = entityChildrenExecutor;
         this.fileService = fileService;
         this.gitService = gitService;
         this.reproducibleProjectsRepository = reproducibleProjectsRepository;
+        this.objectMapper = objectMapper;
     }
 
 
@@ -145,6 +152,37 @@ public class OwlClassesService {
         } catch (Exception e) {
             LOGGER.error("Error fetching changed entities", e);
             throw new ApplicationException("Error fetching changed entities");
+        }
+    }
+
+    public void initialEntitiesChildrenSave(ProjectId projectId, ExecutionContext executionContext) throws ExecutionException, InterruptedException, TimeoutException {
+        List<IRI> initialIris = getAllClassesCommand.execute(new GetAllOwlClassesRequest(projectId), executionContext).get(35, TimeUnit.SECONDS).owlClassList();
+        for (IRI iri : initialIris) {
+            try {
+                CorrelationMDCUtil.setCorrelationId(UUID.randomUUID().toString());
+                GetEntityChildrenResponse dto = entityChildrenExecutor.execute(new GetEntityChildrenRequest(iri, projectId), executionContext)
+                        .get(5, TimeUnit.SECONDS);
+                if(dto.childrenIris() != null && !dto.childrenIris().isEmpty()) {
+                    fileService.writeEntityChildrenFile(new EntityChildren(projectId.id(), iri.toString(), dto.childrenIris().stream().map(IRI::toString).toList()));
+                }
+            } catch (Exception e) {
+                LOGGER.error("Error fetching " + iri);
+            }
+        }
+        gitService.commitAndPushChanges(jsonFileLocation + projectId.id(), "" , "Initial children files commit");
+    }
+
+
+    public void saveOrUpdateEntityChildren(UpdateEntityChildrenRequest request) {
+        try {
+            CorrelationMDCUtil.setCorrelationId(UUID.randomUUID().toString());
+            if(request.childrenIris() != null && !request.childrenIris().isEmpty()) {
+                fileService.writeEntityChildrenFile(new EntityChildren(request.projectId().id(), request.entityIri().toString(), request.childrenIris()));
+            } else {
+                fileService.removeFileIfExists(request.projectId(), request.entityIri());
+            }
+        } catch (Exception e) {
+            LOGGER.error("Error fetching " + request.entityIri());
         }
     }
 

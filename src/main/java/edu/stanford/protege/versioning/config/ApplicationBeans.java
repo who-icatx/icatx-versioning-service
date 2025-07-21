@@ -71,6 +71,10 @@ public class ApplicationBeans implements WebMvcConfigurer {
     CommandExecutor<CreateBackupOwlFileRequest, CreateBackupOwlFileResponse> createBackupOwlFileExecutor(){
         return new CommandExecutorImpl<>(CreateBackupOwlFileResponse.class);
     }
+    @Bean
+    CommandExecutor<GetEntityChildrenRequest, GetEntityChildrenResponse> getEntityChildrenExecutor(){
+        return new CommandExecutorImpl<>(GetEntityChildrenResponse.class);
+    }
 
     @Bean
     public RestTemplate restTemplate() {

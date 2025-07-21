@@ -3,6 +3,7 @@ package edu.stanford.protege.versioning.files;
 
 import com.fasterxml.jackson.databind.*;
 import edu.stanford.protege.versioning.ApplicationException;
+import edu.stanford.protege.versioning.entity.EntityChildren;
 import edu.stanford.protege.webprotege.common.ProjectId;
 import org.semanticweb.owlapi.model.IRI;
 import org.slf4j.*;
@@ -54,6 +55,33 @@ public class FileService {
 
         File jsonFile = new File(directory, extractEntityId(entityIri.toString()) + ".json");
         writeObjectToJsonFile(jsonFile, dto);
+    }
+
+    public void writeEntityChildrenFile(EntityChildren entityChildren) {
+        String lastThreeChars = getLastThreeCharacters(entityChildren.entityUri());
+
+        File directory = new File(versioningLocation + entityChildren.projectId() + "/" + lastThreeChars);
+
+        if (!directory.exists()) {
+            if (directory.mkdirs()) {
+                System.out.println("Directory created: " + directory.getAbsolutePath());
+            } else {
+                throw new RuntimeException("Error creating directory" + directory.getAbsolutePath());
+            }
+        }
+
+        File jsonFile = new File(directory, "children_" + extractEntityId(entityChildren.entityUri()) + ".json");
+        writeObjectToJsonFile(jsonFile, objectMapper.convertValue(entityChildren, JsonNode.class));
+    }
+
+    public void removeFileIfExists(ProjectId projectId, IRI entityIri) {
+        String lastThreeChars = getLastThreeCharacters(entityIri.toString());
+
+        File directory = new File(versioningLocation + projectId+ "/" + lastThreeChars);
+        File jsonFile = new File(directory, "children_" + extractEntityId(entityIri.toString()) + ".json");
+        if(jsonFile.exists()) {
+            jsonFile.delete();
+        }
     }
 
     private String extractEntityId(String iri) {
