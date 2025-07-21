@@ -74,6 +74,16 @@ public class FileService {
         writeObjectToJsonFile(jsonFile, objectMapper.convertValue(entityChildren, JsonNode.class));
     }
 
+    public void removeFileIfExists(ProjectId projectId, IRI entityIri) {
+        String lastThreeChars = getLastThreeCharacters(entityIri.toString());
+
+        File directory = new File(versioningLocation + projectId+ "/" + lastThreeChars);
+        File jsonFile = new File(directory, "children_" + extractEntityId(entityIri.toString()) + ".json");
+        if(jsonFile.exists()) {
+            jsonFile.delete();
+        }
+    }
+
     private String extractEntityId(String iri) {
         if (iri != null && iri.contains("/")) {
             String[] parts = iri.split("/");

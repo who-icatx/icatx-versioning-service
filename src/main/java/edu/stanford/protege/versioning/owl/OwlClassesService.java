@@ -7,6 +7,7 @@ import com.google.common.base.Stopwatch;
 import edu.stanford.protege.versioning.*;
 import edu.stanford.protege.versioning.entity.*;
 import edu.stanford.protege.versioning.files.FileService;
+import edu.stanford.protege.versioning.handlers.UpdateEntityChildrenRequest;
 import edu.stanford.protege.versioning.history.*;
 import edu.stanford.protege.versioning.owl.commands.*;
 import edu.stanford.protege.versioning.repository.ReproducibleProjectsRepository;
@@ -155,26 +156,33 @@ public class OwlClassesService {
     }
 
     public void initialEntitiesChildrenSave(ProjectId projectId, ExecutionContext executionContext) throws ExecutionException, InterruptedException, TimeoutException {
-        List<IRI> initialIris = getAllClassesCommand.execute(new GetAllOwlClassesRequest(projectId), executionContext).get(5, TimeUnit.SECONDS).owlClassList();
+        List<IRI> initialIris = getAllClassesCommand.execute(new GetAllOwlClassesRequest(projectId), executionContext).get(35, TimeUnit.SECONDS).owlClassList();
         for (IRI iri : initialIris) {
-           saveOrUpdateEntityChildren(projectId, iri, executionContext);
+            try {
+                CorrelationMDCUtil.setCorrelationId(UUID.randomUUID().toString());
+                GetEntityChildrenResponse dto = entityChildrenExecutor.execute(new GetEntityChildrenRequest(iri, projectId), executionContext)
+                        .get(5, TimeUnit.SECONDS);
+                if(dto.childrenIris() != null && !dto.childrenIris().isEmpty()) {
+                    fileService.writeEntityChildrenFile(new EntityChildren(projectId.id(), iri.toString(), dto.childrenIris().stream().map(IRI::toString).toList()));
+                }
+            } catch (Exception e) {
+                LOGGER.error("Error fetching " + iri);
+            }
         }
         gitService.commitAndPushChanges(jsonFileLocation + projectId.id(), "" , "Initial children files commit");
     }
 
 
-    public void saveOrUpdateEntityChildren(ProjectId projectId, IRI entityIri, ExecutionContext executionContext) {
+    public void saveOrUpdateEntityChildren(UpdateEntityChildrenRequest request) {
         try {
-            if (!fileService.getEntityFile(entityIri, projectId).exists()) {
-                CorrelationMDCUtil.setCorrelationId(UUID.randomUUID().toString());
-                GetEntityChildrenResponse dto = entityChildrenExecutor.execute(new GetEntityChildrenRequest(entityIri, projectId), executionContext)
-                        .get(5, TimeUnit.SECONDS);
-
-                fileService.writeEntityChildrenFile(new EntityChildren(projectId.id(), entityIri.toString(), dto.childrenIris().stream().map(IRI::toString).toList()));
+            CorrelationMDCUtil.setCorrelationId(UUID.randomUUID().toString());
+            if(request.childrenIris() != null && !request.childrenIris().isEmpty()) {
+                fileService.writeEntityChildrenFile(new EntityChildren(request.projectId().id(), request.entityIri().toString(), request.childrenIris()));
+            } else {
+                fileService.removeFileIfExists(request.projectId(), request.entityIri());
             }
-
         } catch (Exception e) {
-            LOGGER.error("Error fetching " + entityIri);
+            LOGGER.error("Error fetching " + request.entityIri());
         }
     }
 
