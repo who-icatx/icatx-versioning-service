@@ -1,6 +1,6 @@
 server:
   port: 7722
-  servlet.context-path: /icat/
+  servlet.context-path: /versioning/
 
 
 springdoc:
