@@ -15,6 +15,8 @@ import edu.stanford.protege.versioning.owl.commands.CreateBackupOwlFileResponse;
 import edu.stanford.protege.versioning.owl.commands.GetAllOwlClassesRequest;
 import edu.stanford.protege.versioning.owl.commands.GetAllOwlClassesResponse;
 import edu.stanford.protege.versioning.services.git.GitService;
+import edu.stanford.protege.versioning.repository.BlacklistedIriRepository;
+import edu.stanford.protege.versioning.entity.BlacklistedIri;
 import edu.stanford.protege.webprotege.common.ProjectId;
 import edu.stanford.protege.webprotege.ipc.CommandExecutor;
 import edu.stanford.protege.webprotege.ipc.ExecutionContext;
@@ -53,6 +55,8 @@ public class OwlClassesServiceTest {
     @Mock
     private edu.stanford.protege.versioning.repository.ReproducibleProjectsRepository reproducibleProjectsRepository;
     @Mock
+    private BlacklistedIriRepository blacklistedIriRepository;
+    @Mock
     private com.fasterxml.jackson.databind.ObjectMapper objectMapper;
 
     @InjectMocks
@@ -70,6 +74,7 @@ public class OwlClassesServiceTest {
                 fileService,
                 gitService,
                 reproducibleProjectsRepository,
+                blacklistedIriRepository,
                 objectMapper
         );
         // Set jsonFileLocation field if needed
@@ -154,5 +159,47 @@ public class OwlClassesServiceTest {
 
         verify(fileService, never()).writeEntityChildrenFile(any());
         verify(fileService).removeFileIfExists(projectId, entityIri);
+    }
+
+    @Test
+    void testInitialEntitiesChildrenSave_skipsBlacklistedIris() throws Exception {
+        ProjectId projectId = ProjectId.valueOf("123e4567-e89b-12d3-a456-426614174000");
+        ExecutionContext ctx = mock(ExecutionContext.class);
+        IRI iri1 = IRI.create("http://example.org/iri1");
+        IRI iri2 = IRI.create("http://example.org/iri2");
+        IRI blacklistedIri = IRI.create("http://example.org/blacklisted");
+        List<IRI> iris = List.of(iri1, iri2, blacklistedIri);
+        List<IRI> children1 = List.of(IRI.create("http://example.org/child1"));
+        List<IRI> children2 = List.of(IRI.create("http://example.org/child2"));
+
+        // Mock blacklisted IRIs
+        BlacklistedIri blacklistedEntity = new BlacklistedIri(blacklistedIri.toString());
+        when(blacklistedIriRepository.findAll()).thenReturn(List.of(blacklistedEntity));
+
+        // Mock getAllClassesCommand
+        GetAllOwlClassesResponse allClassesResp = mock(GetAllOwlClassesResponse.class);
+        when(getAllClassesCommand.execute(any(), any())).thenReturn(CompletableFuture.completedFuture(allClassesResp));
+        when(allClassesResp.owlClassList()).thenReturn(iris);
+
+        // Mock entityChildrenExecutor for non-blacklisted IRIs
+        GetEntityChildrenResponse resp1 = mock(GetEntityChildrenResponse.class);
+        when(resp1.childrenIris()).thenReturn(children1);
+        GetEntityChildrenResponse resp2 = mock(GetEntityChildrenResponse.class);
+        when(resp2.childrenIris()).thenReturn(children2);
+        when(entityChildrenExecutor.execute(eq(new GetEntityChildrenRequest(iri1, projectId)), any()))
+                .thenReturn(CompletableFuture.completedFuture(resp1));
+        when(entityChildrenExecutor.execute(eq(new GetEntityChildrenRequest(iri2, projectId)), any()))
+                .thenReturn(CompletableFuture.completedFuture(resp2));
+
+        // Run
+        service.initialEntitiesChildrenSave(projectId, ctx);
+
+        // Verify that blacklisted IRI was not processed
+        verify(entityChildrenExecutor, never()).execute(eq(new GetEntityChildrenRequest(blacklistedIri, projectId)), any());
+        
+        // Verify that non-blacklisted IRIs were processed
+        verify(fileService, times(2)).writeEntityChildrenFile(any());
+        verify(gitService).commitAndPushChanges(
+                eq("/tmp/123e4567-e89b-12d3-a456-426614174000"), anyString(), eq("Initial children files commit"));
     }
 }
