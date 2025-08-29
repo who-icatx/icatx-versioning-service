@@ -11,6 +11,8 @@ import edu.stanford.protege.versioning.handlers.UpdateEntityChildrenRequest;
 import edu.stanford.protege.versioning.history.*;
 import edu.stanford.protege.versioning.owl.commands.*;
 import edu.stanford.protege.versioning.repository.ReproducibleProjectsRepository;
+import edu.stanford.protege.versioning.repository.BlacklistedIriRepository;
+import edu.stanford.protege.versioning.entity.BlacklistedIri;
 import edu.stanford.protege.versioning.services.git.GitService;
 import edu.stanford.protege.webprotege.common.ProjectId;
 import edu.stanford.protege.webprotege.ipc.CommandExecutor;
@@ -25,6 +27,7 @@ import org.springframework.stereotype.Service;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.stream.Collectors;
 
 @Service
 public class OwlClassesService {
@@ -42,6 +45,7 @@ public class OwlClassesService {
 
     private final GitService gitService;
     private final ReproducibleProjectsRepository reproducibleProjectsRepository;
+    private final BlacklistedIriRepository blacklistedIriRepository;
 
     private final ObjectMapper objectMapper;
 
@@ -53,7 +57,8 @@ public class OwlClassesService {
                              CommandExecutor<GetChangedEntitiesRequest, GetChangedEntitiesResponse> changedEntitiesExecutor,
                              CommandExecutor<CreateBackupOwlFileRequest, CreateBackupOwlFileResponse> createBackupOwlFileExecutor,
                              CommandExecutor<GetEntityChildrenRequest, GetEntityChildrenResponse> entityChildrenExecutor, FileService fileService,
-                             GitService gitService, ReproducibleProjectsRepository reproducibleProjectsRepository, ObjectMapper objectMapper) {
+                             GitService gitService, ReproducibleProjectsRepository reproducibleProjectsRepository, 
+                             BlacklistedIriRepository blacklistedIriRepository, ObjectMapper objectMapper) {
         this.getAllClassesCommand = getAllClassesCommand;
         this.getEntityInfo = getEntityInfo;
         this.changedEntitiesExecutor = changedEntitiesExecutor;
@@ -62,9 +67,15 @@ public class OwlClassesService {
         this.fileService = fileService;
         this.gitService = gitService;
         this.reproducibleProjectsRepository = reproducibleProjectsRepository;
+        this.blacklistedIriRepository = blacklistedIriRepository;
         this.objectMapper = objectMapper;
     }
 
+    private Set<String> getBlacklistedIris() {
+        return blacklistedIriRepository.findAll().stream()
+                .map(BlacklistedIri::getIri)
+                .collect(Collectors.toSet());
+    }
 
     public List<IRI> saveInitialOntologyInfo(ProjectId projectId, ExecutionContext executionContext) throws ExecutionException, InterruptedException {
         var reproducibleProject = reproducibleProjectsRepository.findByProjectId(projectId.id());
@@ -76,11 +87,18 @@ public class OwlClassesService {
         gitService.gitInitRepo(reproducibleProject.getAssociatedBranch(), projectId.id());
 
         List<IRI> initialIris = getAllClassesCommand.execute(new GetAllOwlClassesRequest(projectId), executionContext).get().owlClassList();
+        Set<String> blacklistedIris = getBlacklistedIris();
         var stopwatch = Stopwatch.createStarted();
         List<IRI> response = new ArrayList<>();
         int fileCount = 0;
         for (IRI iri : initialIris) {
             try {
+                // Skip if IRI is blacklisted
+                if (blacklistedIris.contains(iri.toString())) {
+                    LOGGER.info("Skipping blacklisted IRI: {}", iri);
+                    continue;
+                }
+                
                 if (!fileService.getEntityFile(iri, projectId).exists()) {
                     CorrelationMDCUtil.setCorrelationId(UUID.randomUUID().toString());
                     JsonNode dto = getEntityInfo.execute(new GetProjectEntityInfoRequest(projectId, iri), executionContext).get().entityDto();
@@ -129,9 +147,16 @@ public class OwlClassesService {
                                                 ReproducibleProject reproducibleProject,
                                                 ExecutionContext executionContext) {
         try {
+            Set<String> blacklistedIris = getBlacklistedIris();
             Map<IRI, JsonNode> changedEntitiesInfo = new HashMap<>();
             for (IRI iri : allChangeEntities) {
                 try {
+                    // Skip if IRI is blacklisted
+                    if (blacklistedIris.contains(iri.toString())) {
+                        LOGGER.info("Skipping blacklisted IRI: {}", iri);
+                        continue;
+                    }
+                    
                     JsonNode dto = getEntityInfo.execute(new GetProjectEntityInfoRequest(projectId, iri), executionContext).get().entityDto();
                     changedEntitiesInfo.put(iri, dto);
                 } catch (Throwable e) {
@@ -157,8 +182,15 @@ public class OwlClassesService {
 
     public void initialEntitiesChildrenSave(ProjectId projectId, ExecutionContext executionContext) throws ExecutionException, InterruptedException, TimeoutException {
         List<IRI> initialIris = getAllClassesCommand.execute(new GetAllOwlClassesRequest(projectId), executionContext).get(35, TimeUnit.SECONDS).owlClassList();
+        Set<String> blacklistedIris = getBlacklistedIris();
         for (IRI iri : initialIris) {
             try {
+                // Skip if IRI is blacklisted
+                if (blacklistedIris.contains(iri.toString())) {
+                    LOGGER.info("Skipping blacklisted IRI: {}", iri);
+                    continue;
+                }
+                
                 CorrelationMDCUtil.setCorrelationId(UUID.randomUUID().toString());
                 GetEntityChildrenResponse dto = entityChildrenExecutor.execute(new GetEntityChildrenRequest(iri, projectId), executionContext)
                         .get(5, TimeUnit.SECONDS);
