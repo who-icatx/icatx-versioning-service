@@ -108,7 +108,7 @@ public class OwlClassesService {
                 }
 
             } catch (Exception e) {
-                LOGGER.error("Error fetching " + iri);
+                LOGGER.error("Error fetching " + iri,e);
             }
         }
         stopwatch.stop();
