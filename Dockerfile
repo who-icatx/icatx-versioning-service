@@ -1,4 +1,4 @@
-FROM eclipse-temurin:17-jre-focal AS final
+FROM eclipse-temurin:17-jre-jammy AS final
 
 LABEL MAINTAINER="protege.stanford.edu"
 

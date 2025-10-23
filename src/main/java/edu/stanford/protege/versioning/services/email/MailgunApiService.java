@@ -55,34 +55,39 @@ public class MailgunApiService {
     }
 
     public void sendMail(Exception exception) {
-        String to = StringUtils.isNotBlank(destinationOverride) ? destinationOverride : "default@example.com";
+        try {
+            String to = StringUtils.isNotBlank(destinationOverride) ? destinationOverride : "default@example.com";
 
-        String currentUtc = Instant.now().atZone(ZoneOffset.UTC).format(DateTimeFormatter.ISO_INSTANT);
+            String currentUtc = Instant.now().atZone(ZoneOffset.UTC).format(DateTimeFormatter.ISO_INSTANT);
 
-        StringWriter sw = new StringWriter();
-        exception.printStackTrace(new PrintWriter(sw));
-        String stackTrace = sw.toString();
+            StringWriter sw = new StringWriter();
+            exception.printStackTrace(new PrintWriter(sw));
+            String stackTrace = sw.toString();
 
-        String subject = "Backup Exception Occurred";
-        String htmlContent = String.format("An exception has occured when trying to make backup for %s:<br><br>"
-                        + "<b>Exception Message:</b> %s<br><br>"
-                        + "<b>Stack Trace:</b><pre>%s</pre>",
-                currentUtc,
-                exception.getMessage(),
-                stackTrace);
+            String subject = "Backup Exception Occurred";
+            String htmlContent = String.format("An exception has occured when trying to make backup for %s:<br><br>"
+                            + "<b>Exception Message:</b> %s<br><br>"
+                            + "<b>Stack Trace:</b><pre>%s</pre>",
+                    currentUtc,
+                    exception.getMessage(),
+                    stackTrace);
 
-        Message message = Message.builder()
-                .from(fromName + "<" + fromEmail + ">")
-                .subject(subject)
-                .html(htmlContent)
-                .to(to)
-                .build();
+            Message message = Message.builder()
+                    .from(fromName + "<" + fromEmail + ">")
+                    .subject(subject)
+                    .html(htmlContent)
+                    .to(to)
+                    .build();
 
-        if (sendEmails) {
-            MessageResponse response = messagesApi.sendMessage(domain, message);
-            log.info("Exception email sent to: {} response: {}", to, response);
-        } else {
-            log.warn("Email sending disabled, attempted to send exception email to: {}", to);
+            if (sendEmails) {
+                MessageResponse response = messagesApi.sendMessage(domain, message);
+                log.info("Exception email sent to: {} response: {}", to, response);
+            } else {
+                log.warn("Email sending disabled, attempted to send exception email to: {}", to);
+            }
+        } catch (Exception e) {
+            log.error("Error while sending mail ", e);
         }
+
     }
 }
