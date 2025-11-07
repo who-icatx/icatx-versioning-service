@@ -113,7 +113,8 @@ public class FileService {
         File directory = new File(versioningLocation + projectId.id());
 
         if (!directory.exists()) {
-            throw new ApplicationException("Error creating directory" + directory.getAbsolutePath());
+            LOGGER.error("Error saving directory of small files");
+           // throw new ApplicationException("Error creating directory" + directory.getAbsolutePath());
         }
     }
 }
