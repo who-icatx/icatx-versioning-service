@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
+import java.util.Arrays;
 
 @Service
 public class GitService {
@@ -13,7 +14,7 @@ public class GitService {
 
     private static final String COMMIT_BACKUP_SCRIPT = "/app/commitBackup.sh";
 
-    private static final int  MAX_SIZE_COMMIT_MESSAGE =  100;
+    private static final int MAX_LISTED_ENTITIES = 25;
 
     private static final String CHECKOUT_SCRIPT = "/app/gitCheckout.sh";
 
@@ -97,49 +98,37 @@ public class GitService {
         }
     }
 
-    private String truncateCommitMessage(String commitMessage) {
-        if (commitMessage == null || commitMessage.length() <= MAX_SIZE_COMMIT_MESSAGE) {
-            return commitMessage;
+    private String buildCommitMessage(String entitiesCsv) {
+        if (entitiesCsv == null || entitiesCsv.isBlank()) {
+            return "No entities changed.";
         }
 
-        // Take first MAX_SIZE_COMMIT_MESSAGE characters
-        String truncated = commitMessage.substring(0, MAX_SIZE_COMMIT_MESSAGE);
-        
-        // Find last comma in the truncated part
-        int lastCommaIndex = truncated.lastIndexOf(',');
-        
-        if (lastCommaIndex == -1) {
-            // No comma found, truncate at MAX_SIZE_COMMIT_MESSAGE
-            truncated = commitMessage.substring(0, MAX_SIZE_COMMIT_MESSAGE);
-            String remaining = commitMessage.substring(MAX_SIZE_COMMIT_MESSAGE);
-            // Count remaining entities (commas + 1 for last entity if not ending with comma)
-            int remainingEntities = remaining.split(",", -1).length;
-            if (remainingEntities > 0) {
-                truncated += " and " + remainingEntities + " entities more";
-            }
-        } else {
-            // Truncate at last comma position (including the comma)
-            truncated = commitMessage.substring(0, lastCommaIndex + 1);
-            String remaining = commitMessage.substring(lastCommaIndex + 1);
-            // Count remaining entities
-            int remainingEntities = remaining.split(",", -1).length;
-            if (remainingEntities > 0) {
-                truncated += " and " + remainingEntities + " entities more";
-            }
+        String[] entities = Arrays.stream(entitiesCsv.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .toArray(String[]::new);
+
+        int count = entities.length;
+        if (count == 0) {
+            return "No entities changed.";
         }
-        
-        return truncated;
+
+        if (count <= MAX_LISTED_ENTITIES) {
+            return "Changed " + String.join(", ", entities) + ".";
+        } else {
+            return count + " entities changed.";
+        }
     }
 
     public void commitAndPushChanges(String repoPath, String archivePath, String commitMessage ) {
         try {
-            String truncatedMessage = truncateCommitMessage(commitMessage);
+            String formattedMessage = buildCommitMessage(commitMessage);
 
             ProcessBuilder processBuilder = new ProcessBuilder(
                     COMMIT_BACKUP_SCRIPT,
                     repoPath,
                     archivePath,
-                    truncatedMessage
+                    formattedMessage
             );
 
             // Redirect error stream

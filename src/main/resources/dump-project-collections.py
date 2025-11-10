@@ -4,6 +4,14 @@ import sys
 import os
 import time
 
+# Static list of collections to always include in the dump even if they don't have projectId
+# Populate this with the exact collection names you want exported in full.
+ALWAYS_EXPORT_COLLECTIONS = [
+    "CardDescriptors",
+    "EntityCrudKitSettings",
+    "EntityTags",
+]
+
 def export_project_collections(mongo_uri, project_id, db_name, output_path):
     """
     Exports collections containing a specific projectId, updates projectId, and removes the `_id` field.
@@ -21,6 +29,8 @@ def export_project_collections(mongo_uri, project_id, db_name, output_path):
 
     # List all collections in the database
     collections = db.list_collection_names()
+
+    exported_collections = set()
 
     for collection_name in collections:
         if collection_name == "ReproducibleProjects":
@@ -43,10 +53,36 @@ def export_project_collections(mongo_uri, project_id, db_name, output_path):
                     "--out", output_file,
                 ], check=True)
 
+                exported_collections.add(collection_name)
             except subprocess.CalledProcessError as e:
                 print(f"Error exporting collection {collection_name}: {e}")
             except Exception as e:
                 print(f"Unexpected error for {collection_name}: {e}")
+
+    # Export additional collections that should always be included (without projectId filter)
+    for collection_name in ALWAYS_EXPORT_COLLECTIONS:
+        if collection_name == "ReproducibleProjects":
+            continue
+        if collection_name in exported_collections:
+            continue
+        if collection_name not in collections:
+            print(f"Skipping {collection_name}: collection does not exist in database {db_name}.")
+            continue
+
+        output_file = os.path.join(output_path, f"{collection_name}.json")
+        print(f"Exporting (always) {collection_name} to {output_file}...")
+        try:
+            subprocess.run([
+                "mongoexport",
+                "--uri", mongo_uri,
+                "--db", db_name,
+                "--collection", collection_name,
+                "--out", output_file,
+            ], check=True)
+        except subprocess.CalledProcessError as e:
+            print(f"Error exporting collection {collection_name}: {e}")
+        except Exception as e:
+            print(f"Unexpected error for {collection_name}: {e}")
 
 
     print("Export completed!")

@@ -7,6 +7,15 @@ import uuid
 from bson import ObjectId
 
 
+# Collections that should NOT have `projectId` replaced during import.
+# For these collections we will only handle `_id` regeneration/removal as before.
+STATIC_COLLECTIONS_NO_PROJECTID = [
+    "CardDescriptors",
+    "EntityCrudKitSettings",
+    "EntityTags",
+]
+
+
 def is_uuid4(value):
     """
     Validates if a given value is a UUIDv4 string.
@@ -28,6 +37,7 @@ def replace_project_id_in_json(input_path, new_project_id):
             if file_name.endswith('.json'):
                 file_path = os.path.join(input_path, file_name)
                 temp_file_path = file_path + ".tmp"
+                collection_name = os.path.splitext(file_name)[0]
 
                 print(f"Processing file: {file_name} to replace projectId...")
 
@@ -35,15 +45,20 @@ def replace_project_id_in_json(input_path, new_project_id):
                 with open(file_path, 'r', encoding='utf-8') as infile, open(temp_file_path, 'w', encoding='utf-8') as outfile:
                     for line in infile:
                         document = json.loads(line)
-                        if '_id' in document:
-                            if isinstance(document['_id'], str) and is_uuid4(document['_id']):
-                                # If _id is a valid UUIDv4 string, overwrite with a new UUIDv4
-                                document['_id'] = str(uuid.uuid4())
-                            else:
-                                # If _id is not a valid UUIDv4 or is an ObjectId, remove it
-                                del document['_id']
+                        # For collections in the static list: set `_id` to new_project_id and do NOT touch projectId
+                        if collection_name in STATIC_COLLECTIONS_NO_PROJECTID:
+                            document['_id'] = new_project_id
+                        else:
+                            # Existing flow: handle `_id` and set `projectId`
+                            if '_id' in document:
+                                if isinstance(document['_id'], str) and is_uuid4(document['_id']):
+                                    # If _id is a valid UUIDv4 string, overwrite with a new UUIDv4
+                                    document['_id'] = str(uuid.uuid4())
+                                else:
+                                    # If _id is not a valid UUIDv4 or is an ObjectId, remove it
+                                    del document['_id']
 
-                        document['projectId'] = new_project_id  # Update `projectId`
+                            document['projectId'] = new_project_id  # Update `projectId`
                         outfile.write(json.dumps(document) + '\n')
                 # Replace the original file with the updated one
                 os.replace(temp_file_path, file_path)
