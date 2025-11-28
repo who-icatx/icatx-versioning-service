@@ -10,6 +10,7 @@ ALWAYS_EXPORT_COLLECTIONS = [
     "CardDescriptors",
     "EntityCrudKitSettings",
     "EntityTags",
+    "ProjectDetails"
 ]
 
 def export_project_collections(mongo_uri, project_id, db_name, output_path):
@@ -59,7 +60,7 @@ def export_project_collections(mongo_uri, project_id, db_name, output_path):
             except Exception as e:
                 print(f"Unexpected error for {collection_name}: {e}")
 
-    # Export additional collections that should always be included (without projectId filter)
+    # Export additional collections that should always be included (filtered by _id equal to project_id)
     for collection_name in ALWAYS_EXPORT_COLLECTIONS:
         if collection_name == "ReproducibleProjects":
             continue
@@ -77,6 +78,7 @@ def export_project_collections(mongo_uri, project_id, db_name, output_path):
                 "--uri", mongo_uri,
                 "--db", db_name,
                 "--collection", collection_name,
+                "--query", f'{{"_id": "{project_id}"}}',
                 "--out", output_file,
             ], check=True)
         except subprocess.CalledProcessError as e:
