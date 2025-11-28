@@ -34,7 +34,7 @@ public class PrepareBackupFilesForUseCommandHandler implements CommandHandler<Pr
 
         var response = backupFilesProcessor.prepareOwlBinaryAndImportCollections(request.projectId(), request.fileSubmissionId());
 
-        return Mono.just(PrepareBackupFilesForUseResponse.create(response));
+        return Mono.just(response);
     }
 
 

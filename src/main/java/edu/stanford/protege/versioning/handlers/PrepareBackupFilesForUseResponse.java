@@ -7,10 +7,15 @@ import static edu.stanford.protege.versioning.handlers.PrepareBackupFilesForUseR
 
 @JsonTypeName(CHANNEL)
 public record PrepareBackupFilesForUseResponse(
-        @JsonProperty("binaryFileLocation") BlobLocation binaryFileLocation
+        @JsonProperty("binaryFileLocation") BlobLocation binaryFileLocation,
+        @JsonProperty("projectDetailsJson") String projectDetailsJson
 ) implements Response {
 
     public static PrepareBackupFilesForUseResponse create(BlobLocation binaryFileLocation) {
-        return new PrepareBackupFilesForUseResponse(binaryFileLocation);
+        return new PrepareBackupFilesForUseResponse(binaryFileLocation, null);
+    }
+
+    public static PrepareBackupFilesForUseResponse create(BlobLocation binaryFileLocation, String projectDetailsJson) {
+        return new PrepareBackupFilesForUseResponse(binaryFileLocation, projectDetailsJson);
     }
 }

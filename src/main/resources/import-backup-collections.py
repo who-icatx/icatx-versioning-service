@@ -35,6 +35,8 @@ def replace_project_id_in_json(input_path, new_project_id):
     try:
         for file_name in os.listdir(input_path):
             if file_name.endswith('.json'):
+                if file_name == 'ProjectDetails.json':
+                    continue
                 file_path = os.path.join(input_path, file_name)
                 temp_file_path = file_path + ".tmp"
                 collection_name = os.path.splitext(file_name)[0]
@@ -83,6 +85,8 @@ def import_json_to_mongo(mongo_uri, db_name, input_path):
     try:
         for file_name in os.listdir(input_path):
             if file_name.endswith('.json'):
+                if file_name == 'ProjectDetails.json':
+                    continue
                 collection_name = os.path.splitext(file_name)[0]
                 file_path = os.path.join(input_path, file_name)
 
