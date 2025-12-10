@@ -1,6 +1,5 @@
 package edu.stanford.protege.versioning.services;
 
-import edu.stanford.protege.versioning.SecurityContextHelper;
 import edu.stanford.protege.versioning.dtos.RegularTempFile;
 import edu.stanford.protege.versioning.entity.ReproducibleProject;
 import edu.stanford.protege.versioning.owl.OwlClassesService;
@@ -9,7 +8,10 @@ import edu.stanford.protege.versioning.services.backupProcessor.BackupFilesProce
 import edu.stanford.protege.versioning.services.email.MailgunApiService;
 import edu.stanford.protege.versioning.services.git.GitService;
 import edu.stanford.protege.versioning.services.storage.StorageService;
+import edu.stanford.protege.versioning.projects.SetProjectUnderMaintenanceAction;
+import edu.stanford.protege.versioning.projects.SetProjectUnderMaintenanceResult;
 import edu.stanford.protege.webprotege.common.ProjectId;
+import edu.stanford.protege.webprotege.ipc.CommandExecutor;
 import edu.stanford.protege.webprotege.ipc.ExecutionContext;
 import org.semanticweb.owlapi.model.IRI;
 import org.slf4j.Logger;
@@ -22,7 +24,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-
+import java.util.concurrent.TimeUnit;
 
 
 @Service
@@ -55,6 +57,9 @@ public class ProjectBackupService {
     @Autowired
     private MailgunApiService mailgunApiService;
 
+    @Autowired
+    private CommandExecutor<SetProjectUnderMaintenanceAction, SetProjectUnderMaintenanceResult> setProjectUnderMaintenanceExecutor;
+
     @Value("${webprotege.versioning.location}")
     private String smallGitFilePrefixLocation;
 
@@ -77,14 +82,24 @@ public class ProjectBackupService {
             throw new RuntimeException("Project not found " + projectId);
         }
 
-        gitService.gitCheckout(reproducibleProject.getAssociatedBranch(), smallGitFilePrefixLocation + projectId);
-
-        CompletableFuture<String> backupOwlBinaryTask = service.makeBackupForOwlBinaryFile(project, executionContext);
-        CompletableFuture<RegularTempFile> collectionsBackupTask = CompletableFuture.runAsync(() -> backupFilesProcessor.dumpMongoDb())
-                .thenApply(result -> backupFilesProcessor.createCollectionsBackup(project));
-        CompletableFuture<Void> writeChangedEntities = CompletableFuture.runAsync(() -> service.saveEntitiesSinceLastBackupDate(project, allChangedEntities, reproducibleProject, executionContext));
+        try {
+            LOGGER.info("Setting project {} under maintenance before backup", projectId);
+            SetProjectUnderMaintenanceAction setMaintenanceAction = SetProjectUnderMaintenanceAction.create(project, true);
+            setProjectUnderMaintenanceExecutor.execute(setMaintenanceAction, executionContext).get(5, TimeUnit.SECONDS);
+            LOGGER.info("Project {} set under maintenance successfully", projectId);
+        } catch (Exception e) {
+            LOGGER.error("Failed to set project {} under maintenance before backup", projectId, e);
+            throw new RuntimeException("Failed to set project under maintenance before backup", e);
+        }
 
         try {
+            gitService.gitCheckout(reproducibleProject.getAssociatedBranch(), smallGitFilePrefixLocation + projectId);
+
+            CompletableFuture<String> backupOwlBinaryTask = service.makeBackupForOwlBinaryFile(project, executionContext);
+            CompletableFuture<RegularTempFile> collectionsBackupTask = CompletableFuture.runAsync(() -> backupFilesProcessor.dumpMongoDb())
+                    .thenApply(result -> backupFilesProcessor.createCollectionsBackup(project));
+            CompletableFuture<Void> writeChangedEntities = CompletableFuture.runAsync(() -> service.saveEntitiesSinceLastBackupDate(project, allChangedEntities, reproducibleProject, executionContext));
+
             CompletableFuture.allOf(backupOwlBinaryTask, collectionsBackupTask, writeChangedEntities).join();
             RegularTempFile owlBinary = RegularTempFile.create(backupOwlBinaryTask.get());
             RegularTempFile mongoCollections = collectionsBackupTask.get();
@@ -103,6 +118,15 @@ public class ProjectBackupService {
         } catch (Exception e) {
             mailgunApiService.sendMail(e);
             throw new RuntimeException("Error during backup", e);
+        } finally {
+            try {
+                LOGGER.info("Removing maintenance mode for project {} after backup", projectId);
+                SetProjectUnderMaintenanceAction removeMaintenanceAction = SetProjectUnderMaintenanceAction.create(project, false);
+                setProjectUnderMaintenanceExecutor.execute(removeMaintenanceAction, executionContext).get(5, TimeUnit.SECONDS);
+                LOGGER.info("Project {} maintenance mode removed successfully", projectId);
+            } catch (Exception e) {
+                LOGGER.error("Failed to remove maintenance mode for project {} after backup", projectId, e);
+            }
         }
     }
 }
