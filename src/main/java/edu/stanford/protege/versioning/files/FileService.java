@@ -79,8 +79,10 @@ public class FileService {
 
         File directory = new File(versioningLocation + projectId+ "/" + lastThreeChars);
         File jsonFile = new File(directory, "children_" + extractEntityId(entityIri.toString()) + ".json");
+        LOGGER.info("Trying to delete the children file on path " + jsonFile.getAbsolutePath());
         if(jsonFile.exists()) {
-            jsonFile.delete();
+            var deleteResult = jsonFile.delete();
+            LOGGER.info("Delete result on deleting the file {} is {}", jsonFile.getAbsolutePath(), deleteResult);
         }
     }
 
