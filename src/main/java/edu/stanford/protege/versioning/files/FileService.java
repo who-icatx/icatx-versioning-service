@@ -77,7 +77,7 @@ public class FileService {
     public void removeFileIfExists(ProjectId projectId, IRI entityIri) {
         String lastThreeChars = getLastThreeCharacters(entityIri.toString());
 
-        File directory = new File(versioningLocation + projectId+ "/" + lastThreeChars);
+        File directory = new File(versioningLocation + projectId.id()+ "/" + lastThreeChars);
         File jsonFile = new File(directory, "children_" + extractEntityId(entityIri.toString()) + ".json");
         LOGGER.info("Trying to delete the children file on path " + jsonFile.getAbsolutePath());
         if(jsonFile.exists()) {
