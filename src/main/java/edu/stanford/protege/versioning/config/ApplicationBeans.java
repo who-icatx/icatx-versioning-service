@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import edu.stanford.protege.versioning.entity.*;
 import edu.stanford.protege.versioning.owl.commands.*;
+import edu.stanford.protege.versioning.projects.SetProjectUnderMaintenanceAction;
+import edu.stanford.protege.versioning.projects.SetProjectUnderMaintenanceResult;
 import edu.stanford.protege.webprotege.common.UserId;
 import edu.stanford.protege.webprotege.ipc.CommandExecutor;
 import edu.stanford.protege.webprotege.ipc.impl.CommandExecutorImpl;
@@ -74,6 +76,11 @@ public class ApplicationBeans implements WebMvcConfigurer {
     @Bean
     CommandExecutor<GetEntityChildrenRequest, GetEntityChildrenResponse> getEntityChildrenExecutor(){
         return new CommandExecutorImpl<>(GetEntityChildrenResponse.class);
+    }
+
+    @Bean
+    CommandExecutor<SetProjectUnderMaintenanceAction, SetProjectUnderMaintenanceResult> setProjectUnderMaintenanceExecutor(){
+        return new CommandExecutorImpl<>(SetProjectUnderMaintenanceResult.class);
     }
 
     @Bean
