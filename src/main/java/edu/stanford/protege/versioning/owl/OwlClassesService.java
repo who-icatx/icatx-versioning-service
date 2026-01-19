@@ -193,30 +193,32 @@ public class OwlClassesService {
                 
                 CorrelationMDCUtil.setCorrelationId(UUID.randomUUID().toString());
                 GetEntityChildrenResponse dto = entityChildrenExecutor.execute(new GetEntityChildrenRequest(iri, projectId), executionContext)
-                        .get(5, TimeUnit.SECONDS);
+                        .get(15, TimeUnit.SECONDS);
                 if(dto.childrenIris() != null && !dto.childrenIris().isEmpty()) {
                     fileService.writeEntityChildrenFile(new EntityChildren(projectId.id(), iri.toString(), dto.childrenIris().stream().map(IRI::toString).toList()));
                 }
             } catch (Exception e) {
-                LOGGER.error("Error fetching " + iri);
+                LOGGER.error("Error fetching " + iri, e);
             }
         }
         gitService.commitAndPushChanges(jsonFileLocation + projectId.id(), "" , "Initial children files commit");
     }
 
 
-    public void saveOrUpdateEntityChildren(UpdateEntityChildrenRequest request) {
+    public void saveOrUpdateEntityChildren(UpdateEntityChildrenRequest request, ExecutionContext executionContext) {
         try {
             CorrelationMDCUtil.setCorrelationId(UUID.randomUUID().toString());
-            if(request.childrenIris() != null && !request.childrenIris().isEmpty()) {
-                LOGGER.info("Writing entity children of {} with {}", request.entityIri().toString(), String.join(",", request.childrenIris()));
-                fileService.writeEntityChildrenFile(new EntityChildren(request.projectId().id(), request.entityIri().toString(), request.childrenIris()));
+            GetEntityChildrenResponse dto = entityChildrenExecutor.execute(new GetEntityChildrenRequest(request.entityIri(), request.projectId()), executionContext)
+                    .get(15, TimeUnit.SECONDS);
+            if(dto.childrenIris() != null && !dto.childrenIris().isEmpty()) {
+                LOGGER.info("Writing entity children of {} with {}", request.entityIri().toString(), String.join(",", dto.childrenIris()));
+                fileService.writeEntityChildrenFile(new EntityChildren(request.projectId().id(), request.entityIri().toString(), dto.childrenIris().stream().map(IRI::toString).toList()));
             } else {
                 LOGGER.info("No child found for {}, remove the file", request.entityIri().toString());
                 fileService.removeFileIfExists(request.projectId(), request.entityIri());
             }
         } catch (Exception e) {
-            LOGGER.error("Error fetching " + request.entityIri());
+            LOGGER.error("Error fetching entity" + request.entityIri(), e);
         }
     }
 

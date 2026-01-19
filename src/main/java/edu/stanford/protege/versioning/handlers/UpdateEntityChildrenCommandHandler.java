@@ -31,7 +31,7 @@ public class UpdateEntityChildrenCommandHandler  implements CommandHandler<Updat
 
     @Override
     public Mono<UpdateEntityChildrenResponse> handleRequest(UpdateEntityChildrenRequest request, ExecutionContext executionContext) {
-        owlClassesService.saveOrUpdateEntityChildren(request);
+        owlClassesService.saveOrUpdateEntityChildren(request, executionContext);
         return Mono.just(new UpdateEntityChildrenResponse());
     }
 }
