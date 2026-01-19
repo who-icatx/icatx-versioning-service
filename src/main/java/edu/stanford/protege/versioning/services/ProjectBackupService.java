@@ -82,7 +82,8 @@ public class ProjectBackupService {
             throw new RuntimeException("Project not found " + projectId);
         }
 
-        try {
+/*        try {
+TODO to be removed when we fix the timeout issue on set backup.
             LOGGER.info("Setting project {} under maintenance before backup", projectId);
             SetProjectUnderMaintenanceAction setMaintenanceAction = SetProjectUnderMaintenanceAction.create(project, true);
             setProjectUnderMaintenanceExecutor.execute(setMaintenanceAction, executionContext).get(5, TimeUnit.SECONDS);
@@ -90,7 +91,7 @@ public class ProjectBackupService {
         } catch (Exception e) {
             LOGGER.error("Failed to set project {} under maintenance before backup", projectId, e);
             throw new RuntimeException("Failed to set project under maintenance before backup", e);
-        }
+        }*/
 
         try {
             gitService.gitCheckout(reproducibleProject.getAssociatedBranch(), smallGitFilePrefixLocation + projectId);
@@ -119,14 +120,16 @@ public class ProjectBackupService {
             mailgunApiService.sendMail(e);
             throw new RuntimeException("Error during backup", e);
         } finally {
-            try {
+/*            try {
+TODO to be removed when we fix the timeout issue on set backup.
+
                 LOGGER.info("Removing maintenance mode for project {} after backup", projectId);
                 SetProjectUnderMaintenanceAction removeMaintenanceAction = SetProjectUnderMaintenanceAction.create(project, false);
                 setProjectUnderMaintenanceExecutor.execute(removeMaintenanceAction, executionContext).get(5, TimeUnit.SECONDS);
                 LOGGER.info("Project {} maintenance mode removed successfully", projectId);
             } catch (Exception e) {
                 LOGGER.error("Failed to remove maintenance mode for project {} after backup", projectId, e);
-            }
+            }*/
         }
     }
 }
