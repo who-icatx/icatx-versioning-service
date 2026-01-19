@@ -209,8 +209,10 @@ public class OwlClassesService {
         try {
             CorrelationMDCUtil.setCorrelationId(UUID.randomUUID().toString());
             if(request.childrenIris() != null && !request.childrenIris().isEmpty()) {
+                LOGGER.info("Writing entity children of {} with {}", request.entityIri().toString(), String.join(",", request.childrenIris()));
                 fileService.writeEntityChildrenFile(new EntityChildren(request.projectId().id(), request.entityIri().toString(), request.childrenIris()));
             } else {
+                LOGGER.info("No child found for {}, remove the file", request.entityIri().toString());
                 fileService.removeFileIfExists(request.projectId(), request.entityIri());
             }
         } catch (Exception e) {
