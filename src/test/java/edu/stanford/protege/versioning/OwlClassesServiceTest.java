@@ -27,6 +27,8 @@ import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.semanticweb.owlapi.model.IRI;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -61,6 +63,7 @@ public class OwlClassesServiceTest {
 
     @InjectMocks
     private OwlClassesService service;
+    ExecutionContext ctx = mock(ExecutionContext.class);
 
     @BeforeEach
     void setup() {
@@ -79,12 +82,12 @@ public class OwlClassesServiceTest {
         );
         // Set jsonFileLocation field if needed
         org.springframework.test.util.ReflectionTestUtils.setField(service, "jsonFileLocation", "/tmp/");
+
     }
 
     @Test
     void testInitialEntitiesChildrenSave_writesChildrenFilesAndCommits() throws Exception {
         ProjectId projectId = ProjectId.valueOf("123e4567-e89b-12d3-a456-426614174000");
-        ExecutionContext ctx = mock(ExecutionContext.class);
         IRI iri1 = IRI.create("http://example.org/iri1");
         IRI iri2 = IRI.create("http://example.org/iri2");
         List<IRI> iris = List.of(iri1, iri2);
@@ -126,8 +129,8 @@ public class OwlClassesServiceTest {
         IRI entityIri = IRI.create("http://example.org/iri");
         List<String> children = List.of("child1", "child2");
         UpdateEntityChildrenRequest req = new UpdateEntityChildrenRequest(projectId, entityIri, children);
-
-        service.saveOrUpdateEntityChildren(req);
+        when(entityChildrenExecutor.execute(any(),any())).thenReturn(CompletableFuture.completedFuture(new GetEntityChildrenResponse(children.stream().map(IRI::create).toList())));
+        service.saveOrUpdateEntityChildren(req, ctx);
 
         verify(fileService).writeEntityChildrenFile(argThat(ec ->
                 ec.projectId().equals(projectId.id()) &&
@@ -142,8 +145,9 @@ public class OwlClassesServiceTest {
         ProjectId projectId = ProjectId.valueOf("123e4567-e89b-12d3-a456-426614174000");
         IRI entityIri = IRI.create("http://example.org/iri");
         UpdateEntityChildrenRequest req = new UpdateEntityChildrenRequest(projectId, entityIri, List.of());
+        when(entityChildrenExecutor.execute(any(),any())).thenReturn(CompletableFuture.completedFuture(new GetEntityChildrenResponse(new ArrayList<>())));
 
-        service.saveOrUpdateEntityChildren(req);
+        service.saveOrUpdateEntityChildren(req, ctx);
 
         verify(fileService, never()).writeEntityChildrenFile(any());
         verify(fileService).removeFileIfExists(projectId, entityIri);
@@ -154,8 +158,9 @@ public class OwlClassesServiceTest {
         ProjectId projectId = ProjectId.valueOf("123e4567-e89b-12d3-a456-426614174000");
         IRI entityIri = IRI.create("http://example.org/iri");
         UpdateEntityChildrenRequest req = new UpdateEntityChildrenRequest(projectId, entityIri, null);
+        when(entityChildrenExecutor.execute(any(),any())).thenReturn(CompletableFuture.completedFuture(new GetEntityChildrenResponse(new ArrayList<>())));
 
-        service.saveOrUpdateEntityChildren(req);
+        service.saveOrUpdateEntityChildren(req, ctx);
 
         verify(fileService, never()).writeEntityChildrenFile(any());
         verify(fileService).removeFileIfExists(projectId, entityIri);
@@ -164,7 +169,6 @@ public class OwlClassesServiceTest {
     @Test
     void testInitialEntitiesChildrenSave_skipsBlacklistedIris() throws Exception {
         ProjectId projectId = ProjectId.valueOf("123e4567-e89b-12d3-a456-426614174000");
-        ExecutionContext ctx = mock(ExecutionContext.class);
         IRI iri1 = IRI.create("http://example.org/iri1");
         IRI iri2 = IRI.create("http://example.org/iri2");
         IRI blacklistedIri = IRI.create("http://example.org/blacklisted");
