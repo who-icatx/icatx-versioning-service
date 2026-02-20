@@ -10,7 +10,7 @@
     </parent>
     <groupId>edu.stanford.protege</groupId>
     <artifactId>icatx-versioning-service</artifactId>
-    <version>0.0.35</version>
+    <version>0.0.36</version>
     <name>icatx-versioning-service</name>
     <description>This microservice handles the versioning of the entities, allowing a GIT-like behaviour of OWL Classes.</description>
     <url/>
