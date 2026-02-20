@@ -63,8 +63,29 @@ public class ProjectBackupService {
     @Value("${webprotege.versioning.location}")
     private String smallGitFilePrefixLocation;
 
+    private static final int MAINTENANCE_RETRY_COUNT = 3;
+    private static final int MAINTENANCE_TIMEOUT_BASE_SEC = 5;
+    private static final int MAINTENANCE_TIMEOUT_MAX_SEC = 10;
 
-    public List<IRI> createBackupTest(String projectId, ExecutionContext executionContext) {
+    private void executeSetMaintenanceWithRetry(ProjectId project, ExecutionContext executionContext, boolean underMaintenance, String actionLabel) {
+        Exception lastException = null;
+        for (int attempt = 0; attempt <= MAINTENANCE_RETRY_COUNT; attempt++) {
+            int timeoutSec = Math.min(MAINTENANCE_TIMEOUT_BASE_SEC + attempt, MAINTENANCE_TIMEOUT_MAX_SEC);
+            try {
+                SetProjectUnderMaintenanceAction action = SetProjectUnderMaintenanceAction.create(project, underMaintenance);
+                setProjectUnderMaintenanceExecutor.execute(action, executionContext).get(timeoutSec, TimeUnit.SECONDS);
+                return;
+            } catch (Exception e) {
+                lastException = e;
+                LOGGER.warn("{} (attempt {}/{}), timeout {}s failed for project {}", actionLabel, attempt + 1, MAINTENANCE_RETRY_COUNT + 1, timeoutSec, project.id(), e);
+                if (attempt == MAINTENANCE_RETRY_COUNT) {
+                    throw new RuntimeException(actionLabel + " failed after " + (MAINTENANCE_RETRY_COUNT + 1) + " attempts", lastException);
+                }
+            }
+        }
+    }
+
+    public List<IRI> createBackup(String projectId, ExecutionContext executionContext) {
         LOGGER.info("Starting create backup flow for project " + projectId + "with execution context " + executionContext);
         ProjectId project = ProjectId.valueOf(projectId);
         List<IRI> allChangedEntities = service.getAllChangedEntitiesSinceLastBackupDate(project, executionContext);
@@ -81,15 +102,9 @@ public class ProjectBackupService {
             throw new RuntimeException("Project not found " + projectId);
         }
 
-       try {
-            LOGGER.info("Setting project {} under maintenance before backup", projectId);
-            SetProjectUnderMaintenanceAction setMaintenanceAction = SetProjectUnderMaintenanceAction.create(project, true);
-            setProjectUnderMaintenanceExecutor.execute(setMaintenanceAction, executionContext).get(5, TimeUnit.SECONDS);
-            LOGGER.info("Project {} set under maintenance successfully", projectId);
-        } catch (Exception e) {
-            LOGGER.error("Failed to set project {} under maintenance before backup", projectId, e);
-            throw new RuntimeException("Failed to set project under maintenance before backup", e);
-        }
+        LOGGER.info("Setting project {} under maintenance before backup", projectId);
+        executeSetMaintenanceWithRetry(project, executionContext, true, "Set project under maintenance before backup");
+        LOGGER.info("Project {} set under maintenance successfully", projectId);
 
         try {
             gitService.gitCheckout(reproducibleProject.getAssociatedBranch(), smallGitFilePrefixLocation + projectId);
@@ -119,82 +134,12 @@ public class ProjectBackupService {
             throw new RuntimeException("Error during backup", e);
         } finally {
             try {
-
                 LOGGER.info("Removing maintenance mode for project {} after backup", projectId);
-                SetProjectUnderMaintenanceAction removeMaintenanceAction = SetProjectUnderMaintenanceAction.create(project, false);
-                setProjectUnderMaintenanceExecutor.execute(removeMaintenanceAction, executionContext).get(5, TimeUnit.SECONDS);
+                executeSetMaintenanceWithRetry(project, executionContext, false, "Remove maintenance mode after backup");
                 LOGGER.info("Project {} maintenance mode removed successfully", projectId);
             } catch (Exception e) {
                 LOGGER.error("Failed to remove maintenance mode for project {} after backup", projectId, e);
             }
-        }
-    }
-
-    public List<IRI> createBackup(String projectId, ExecutionContext executionContext) {
-        LOGGER.info("Starting create backup flow for project " + projectId + "with execution context " + executionContext);
-        ProjectId project = ProjectId.valueOf(projectId);
-        List<IRI> allChangedEntities = service.getAllChangedEntitiesSinceLastBackupDate(project, executionContext);
-        ReproducibleProject reproducibleProject = reproducibleProjectsRepository.findByProjectId(projectId);
-
-        if(allChangedEntities.isEmpty()){
-            LOGGER.info("Project " + projectId + " has no changed entties since last backup date. Skipping backup");
-            return new ArrayList<>();
-        } else {
-            LOGGER.info("Creating backup for " + allChangedEntities.size() + " entities on projectId " + projectId);
-        }
-
-        if (reproducibleProject == null) {
-            throw new RuntimeException("Project not found " + projectId);
-        }
-
-/*        try {
-TODO to be removed when we fix the timeout issue on set backup.
-            LOGGER.info("Setting project {} under maintenance before backup", projectId);
-            SetProjectUnderMaintenanceAction setMaintenanceAction = SetProjectUnderMaintenanceAction.create(project, true);
-            setProjectUnderMaintenanceExecutor.execute(setMaintenanceAction, executionContext).get(5, TimeUnit.SECONDS);
-            LOGGER.info("Project {} set under maintenance successfully", projectId);
-        } catch (Exception e) {
-            LOGGER.error("Failed to set project {} under maintenance before backup", projectId, e);
-            throw new RuntimeException("Failed to set project under maintenance before backup", e);
-        }*/
-
-        try {
-            gitService.gitCheckout(reproducibleProject.getAssociatedBranch(), smallGitFilePrefixLocation + projectId);
-
-            CompletableFuture<String> backupOwlBinaryTask = service.makeBackupForOwlBinaryFile(project, executionContext);
-            CompletableFuture<RegularTempFile> collectionsBackupTask = CompletableFuture.runAsync(() -> backupFilesProcessor.dumpMongoDb())
-                    .thenApply(result -> backupFilesProcessor.createCollectionsBackup(project));
-            CompletableFuture<Void> writeChangedEntities = CompletableFuture.runAsync(() -> service.saveEntitiesSinceLastBackupDate(project, allChangedEntities, reproducibleProject, executionContext));
-
-            CompletableFuture.allOf(backupOwlBinaryTask, collectionsBackupTask, writeChangedEntities).join();
-            RegularTempFile owlBinary = RegularTempFile.create(backupOwlBinaryTask.get());
-            RegularTempFile mongoCollections = collectionsBackupTask.get();
-
-
-            String commitMessage = String.join(", ", allChangedEntities.stream().map(IRI::toString).toList());
-
-            Path finalBackupFilesArchive = storageService.combineFilesIntoArchive(backupDirectoryProvider.get(project), mongoCollections, owlBinary);
-
-
-            gitService.commitAndPushChanges(versioningDirectoryProvider.get(project).toAbsolutePath().toString(), finalBackupFilesArchive.toAbsolutePath().toString(), commitMessage);
-
-
-            mongoCollections.clearTempFiles();
-            return allChangedEntities;
-        } catch (Exception e) {
-            mailgunApiService.sendMail(e);
-            throw new RuntimeException("Error during backup", e);
-        } finally {
-/*            try {
-TODO to be removed when we fix the timeout issue on set backup.
-
-                LOGGER.info("Removing maintenance mode for project {} after backup", projectId);
-                SetProjectUnderMaintenanceAction removeMaintenanceAction = SetProjectUnderMaintenanceAction.create(project, false);
-                setProjectUnderMaintenanceExecutor.execute(removeMaintenanceAction, executionContext).get(5, TimeUnit.SECONDS);
-                LOGGER.info("Project {} maintenance mode removed successfully", projectId);
-            } catch (Exception e) {
-                LOGGER.error("Failed to remove maintenance mode for project {} after backup", projectId, e);
-            }*/
         }
     }
 }

@@ -33,31 +33,6 @@ public class ProjectBackupScheduler {
     private KeycloakService keycloakService;
 
 
-    public void testBackup() {
-        LOGGER.info("Starting scheduled backup for all configured projects");
-
-        List<String> projects = reproducibleProjectsRepository.findAll().stream()
-                .map(ReproducibleProject::getProjectId)
-                .toList();
-
-        if (projects.isEmpty()) {
-            LOGGER.info("No projects configured for backup");
-            return;
-        }
-
-
-        for (String projectId : projects) {
-            try {
-                LOGGER.info("Starting backup for project: {}", projectId);
-                // Use Keycloak service execution context instead of SecurityContextHelper
-                backupService.createBackupTest(projectId, SecurityContextHelper.getExecutionContext());
-                LOGGER.info("Successfully completed backup for project: {}", projectId);
-            } catch (Exception e) {
-                LOGGER.error("Failed to backup project: " + projectId, e);
-            }
-        }
-    }
-
     @Scheduled(cron = "0 39 01 * * ?")
     public void scheduledBackup() {
         LOGGER.info("Starting scheduled backup for all configured projects");
