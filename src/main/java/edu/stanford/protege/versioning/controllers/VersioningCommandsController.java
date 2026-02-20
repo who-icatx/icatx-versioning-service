@@ -73,4 +73,10 @@ public class VersioningCommandsController {
         return ResponseEntity.ok(result.isUnderMaintenance());
     }
 
+    @GetMapping("/test-backup")
+    public ResponseEntity<Void>test(){
+        scheduler.testBackup();
+        return ResponseEntity.ok().build();
+    }
+
 }
